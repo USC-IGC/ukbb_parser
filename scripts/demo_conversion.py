@@ -42,11 +42,14 @@ def add_ethnicity_columns(dataFrame):
 
     converted_ethn = dataFrame[ethn]
 
+    print(' ** Starting Step 1')
     for c in ethn:
-        converted_ethn[c] = [convert_ethnicity(v) for v in converted_ethn[c]]
+        converted_ethn[c] = converted_ethn[c].apply(convert_ethnicity)
+    print(' ** Step 1 completed')
 
     single_ethn = []
 
+    print(' ** Starting Step 2')
     for i, row in converted_ethn.iterrows():
         if len(converted_ethn.loc[i, ethn].value_counts()) > 1:
             possibilities = list(converted_ethn.loc[i, ethn].value_counts().keys())
@@ -61,10 +64,11 @@ def add_ethnicity_columns(dataFrame):
             single_ethn.append(np.nan)
         else:
             single_ethn.append(converted_ethn.loc[i, ethn].value_counts().keys()[0])
+    print(' ** Step 2 completed')
 
     dataFrame['Race'] = single_ethn
 
-return dataFrame
+    return dataFrame
 
 def add_education_columns(dataFrame):
 
