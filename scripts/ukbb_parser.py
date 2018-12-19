@@ -25,7 +25,7 @@ def ukbb_parser():
 # 
 # @ukbb_parser.command()
 # @click.option("--cohort", metavar="path", help="""Name of text file to write out""")
-# @click.option("--incsv", metavar="csv", nargs="+", help="""CSV(s) from which the cohort subject IDs are to be derived""")
+# @click.option("--incsv", metavar="csv", help="""CSV(s) from which the cohort subject IDs are to be derived""")
 # def create_cohort(cohort, incsv):
 #     subjids = []
 #     for csv in incsv:
@@ -53,7 +53,7 @@ def check(incsv, datafield):
 
 @ukbb_parser.command()
 @click.option("--previous", metavar="CSV", help="""File path of previous downloaded UK Biobank CSV""")
-@click.option("--new", metavar="CSV", help="""File path of new downloaded UK Biobank CSV""")
+@click.option("--new", metavar="CSV", help="""File path of new downloaded UK Biobank CSV or CSV of processed results""")
 @click.option("--output", metavar="CSV", help="""File path to write newly updated CSV to""")
 def update(previous, new, output):
     def read_csv(csv):
@@ -96,36 +96,37 @@ parser_desc = """
 @ukbb_parser.command()
 @click.option("-i", "--incsv", metavar="CSV", help="""File path of the downloaded UK Biobank data csv""")
 @click.option("-o", "--out", help="""Output prefix""")
-@click.option("--incon", nargs="+", metavar="ICD10Code",
+@click.option("--incon", multiple=True, metavar="ICD10Code",
         help="ICD10 Diagnosis codes you wish to include. Least common denominators are acceptable, e.g. --incon F. For ranges, please keep them within the same letter, e.g. F10-20") 
-@click.option("--excon", nargs="+", metavar="ICD10Code",
+@click.option("--excon", multiple=True, metavar="ICD10Code",
         help="ICD10 Diagnosis codes you wish to exclude. Least common denominators are acceptable, e.g. --excon F. For ranges, please keep them within the same letter, e.g. F10-20") 
-@click.option("--insr", nargs="+", metavar="SRCode",
+@click.option("--insr", multiple=True, metavar="SRCode",
         help="Self-Report codes you wish to include. Ranges are acceptable inputs.")
-@click.option("--exsr", nargs="+", metavar="SRCode",
+@click.option("--exsr", multiple=True, metavar="SRCode",
         help="Self-Report codes you wish to exclude. Ranges are acceptable inputs.")
-# @click.option("--filter", metavar="column=value", nargs="+",
+# @click.option("--filter", metavar="column=value", multiple=True,
 #         help="Filters to only give rows where the column value is as specified")
-@click.option("--incat", nargs="+", metavar="Category",
+@click.option("--incat", multiple=True, metavar="Category",
         help="Categories you wish to include. Ranges are acceptable inputs, e.g. 100-200")
-@click.option("--excat", nargs="+", metavar="Category",
+@click.option("--excat", multiple=True, metavar="Category",
         help="Categories you wish to exclude. Ranges are acceptable inputs, e.g. 100-200")
-@click.option("--inhdr", nargs="+", metavar="HeaderName",
+@click.option("--inhdr", multiple=True, metavar="HeaderName",
         help="Columns names you wish to include. Ranges are acceptable inputs, e.g. 100-200\nIf you wish to have all the available data, please use --inhdr all")
-@click.option("--exhdr", nargs="+", metavar="HeaderName",
+@click.option("--exhdr", multiple=True, metavar="HeaderName",
         help="Columns names you wish to exclude. Ranges are acceptable inputs, e.g. 100-200")
-# @click.option("--cohort", metavar="cohort", nargs="+",
+# @click.option("--cohort", metavar="cohort", multiple=True,
 #         help="""Output csv will be limited to the data of the cohort(s)""")
-@click.option("--subjects", nargs="+", metavar="SubID", help="""A list of participant IDs to include""")
-@click.option("--dropouts", nargs="+", metavar="dropouts", help="""CSV(s) containing eids of participants who have dropped out of the study""")
-@click.option("--icd10_count", nargs="+", metavar="ICD10Code", 
+@click.option("--subjects", multiple=True, metavar="SubID", help="""A list of participant IDs to include""")
+@click.option("--dropouts", multiple=True, metavar="dropouts", help="""CSV(s) containing eids of participants who have dropped out of the study""")
+@click.option("--icd10_count", multiple=True, metavar="ICD10Code", 
         help="Create a binary column for the specified ICD10 conditions only. Ranges can cross consecutive letters, e.g. A00-B99. Ranges within a letter should be specified, A00-A99. A single letter will create a binary column for that group of diseases. Give the input as 'all' to create a column for every self-report condition")
-@click.option("--sr_count", nargs="+", metavar="SRCode", 
+@click.option("--sr_count", multiple=True, metavar="SRCode", 
         help="Create a binary column for the specified self-report conditions only. Ranges are acceptable inputs. Give the input as 'all' to create a column for every self-report condition")
-@click.option("--img_only", is_flag=True, help="Use this flag to only keep data acquired during the imaging visit.")
+@click.option("--img_subs_only", is_flag=True, help="Use this flag to only keep data of participants with an imaging visit.")
+@click.option("--img_visit_only", is_flag=True, help="Use this flag to only keep data acquired during the imaging visit.")
 @click.option("--fillna",  help="Use this flag to fill blank cells with the flag input, e.g., NA")
-@click.option("--combine", metavar="Spreadsheet", nargs="+", help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'""")
-def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, icd10_count, sr_count, img_only, fillna, combine):
+@click.option("--combine", metavar="Spreadsheet", multiple=True, help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'""")
+def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, icd10_count, sr_count, img_subs_only, img_visit_only, fillna, combine):
 
     ##################
     ### Setting Up ###
@@ -238,7 +239,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         click.echo("Obtaining subset of provided subject IDs")
         for sub in subjects:
             try:
-                open(sub, 'r') as f:
+                with open(sub, 'r') as f:
                     lines = [l.strip() for l in f.readlines()]
                 sublist += [int(l) for l in lines]
                 del lines
@@ -255,6 +256,13 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     if len(sublist) > 0:
         df = df[df.eid.isin(sublist)]
 
+    if img_subs_only:
+        if "53-2.0" in orig_columns:
+            df = df[df["53-2.0"].notnull()]
+        else:
+            click.echo("Cannot select imaged subset of participants")
+            sys.exit(0)
+
     ### Remove study dropouts
 
     dropids = []
@@ -269,9 +277,11 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     ### Filter subjects by ICD10 conditions
 
-    click.echo("Filtering by ICD10 conditions")
+    if (len(incon) > 0) or (len(excon) > 0):
+        click.echo("Filtering by ICD10 conditions")
 
     coding19 = pd.read_table(pkg_resources.resource_filename(__name__, 'coding19.tsv'), index_col="coding")
+    selectable_icd10 = coding19.loc[coding19.selectable == "Y"].index.tolist()
     
     main_icd_columns = [c for c in orig_columns if c.startswith("41202-")]
     sec_icd_columns = [c for c in orig_columns if c.startswith("41204-")]
@@ -281,20 +291,24 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     if len(incon) > 0:
         for icd in incon:
-            if "-" in icd:
-                include_icd += coding19.loc[icd.split("-")[0] : icd.split("-")[1]].index.tolist()
-            else:
+            if icd in selectable_icd10:
                 include_icd.append(icd)
+            elif "-" in icd:
+                include_icd += coding19.loc[icd.split("-")[0]+"0" : icd.split("-")[1]+"99999999"].index.tolist()
+            else:
+                include_icd += coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
 
     exclude_icd = []
 
     if len(excon) > 0:
 
         for icd in excon:
-            if "-" in icd:
-                exclude_icd += coding19.loc[icd.split("-")[0] : icd.split("-")[1]].index.tolist()
-            else:
+            if icd in selectable_icd10:
                 exclude_icd.append(icd)
+            elif "-" in icd:
+                exclude_icd += coding19.loc[icd.split("-")[0]+"0" : icd.split("-")[1]+"99999999"].index.tolist()
+            else:
+                exclude_icd += coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
 
     # N.B. Actual filtering happens below in Self-Report section
 
@@ -305,18 +319,26 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             count_icd10 = icd10.index.tolist()
         else:
             for icd in icd10_count:
-                if "-" in icd:
-                    count_icd10 += coding19.loc[icd.split("-")[0] : icd.split("-")[1]].index.tolist()
-                else:
+                if (len(icd) == 1) or (icd in selectable_icd10):
                     count_icd10.append(icd)
+                elif "-" in icd:
+                    count_icd10 += coding19.loc[icd.split("-")[0]+"0" : icd.split("-")[1]+"99999999"].index.tolist()
+                else:
+                    count_icd10 += coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
 
     for ci in count_icd10:
-        df.loc[df[icd_columns].isin([ci]).any(axis=1), ci] = 1   
-        # There are slice assignment warnings for this 
+        if len(ci) == 1:
+            icd10s = coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
+            df.loc[df[icd_columns].isin(icd10s).any(axis=1), ci] = 1   
+            # There are slice assignment warnings for this 
+        else:
+            df.loc[df[icd_columns].isin([ci]).any(axis=1), ci] = 1   
+            # There are slice assignment warnings for this 
 
     ### Filter subjects by Self-Report conditions
 
-    click.echo("Filtering by Self-Report conditions")
+    if (len(insr) > 0) or (len(exsr) > 0):
+        click.echo("Filtering by Self-Report conditions")
 
     coding6 = pd.read_table(pkg_resources.resource_filename(__name__, 'coding6.tsv'), index_col="coding")
 
@@ -339,7 +361,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             else:
                 exclude_srs.append(int(sr))
 
-    if (len(exsr) > 0) or (len(excon) > 0):
+    if (len(insr) > 0) or (len(incon) > 0):
         found_icd_includes = df[icd_columns].isin(include_icd).any(axis=1)
         found_sr_includes = df[sr_columns].isin(include_srs).any(axis=1)
         found_includes = np.logical_or(found_icd_includes, found_sr_includes)
@@ -366,37 +388,89 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         df.loc[df[sr_columns].isin([csr]).any(axis=1), csr] = 1   
         # There are slice assignment warnings for this 
 
-    df.dropna(axis=1, how="all", inplace=True)
+    ### Control Time
+
+    cohorts = {"NP_controls_1": {"icd10": ['A8', 'B20', 'B21', 'B22', 'B23', 'B24', 'B65-B83',
+                                           'C', 'F','G','I6','Q0','S04','S06','S07','S08','S09',
+                                           'T36-T46', 'T48-T50']},
+               "NP_controls_2": {"icd10": ['A8', 'B20', 'B21', 'B22', 'B23', 'B24', 'B65-B83',
+                                           'C', 'F','G','I6','Q0','S04','S06','S07','S08','S09',
+                                           'T36-T46', 'T48-T50'],
+                                 "sr": [1075, 1081, 1086, 1220, 1234, 1243, 1246, 1247, 1250, 1256, 1258, 1260,
+                                        1261, 1262, 1264, 1266, 1267, 1286, 1287, 1288, 1291, 1371, 1408,
+                                        1434, 1437, 1439]},
+               "CNS_controls_1": {"icd10": ['C70', 'C71', 'C72', 'G', 'I6', 'Q0', 'R90', 'R940', 
+                                            'S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09'],
+                                  "sr": [1081, 1086, 1266, 1267, 1397, 1434, 1437, 1491, 1626]\
+                                        + list(range(1244,1252)) + list(range(1258, 1265))},
+               "CNS_controls_2": {"icd10": ['C70', 'C71', 'C72', 'F2', 'F31', 'F7', 'G', 'I6', 'Q0', 'R90', 'R940', 
+                                            'S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09'],
+                                  "sr": [1081, 1086, 1243, 1266, 1267, 1289, 1291, 
+                                         1371, 1397, 1434, 1437, 1491, 1626]\
+                                        + list(range(1244,1252)) + list(range(1258, 1265))}
+               }
+
+    click.echo("Indicating Control Cohorts")
+
+    for k, v in cohorts.items():
+        icd10_excludes = []
+        for icd in v['icd10']:
+            if icd in selectable_icd10:
+                icd10_excludes.append(icd)
+            elif "-" in icd:
+                icd10_excludes += coding19.loc[icd.split("-")[0]+"0" : icd.split("-")[1]+"99999999"].index.tolist()
+            else:
+                icd10_excludes += coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
+
+        icd10_series = df[icd_columns].isin(icd10_excludes).any(axis=1)
+        sr_series = np.zeros_like(icd10_series)
+        if 'sr' in v.keys():
+            sr_series = df[sr_columns].isin(v['sr']).any(axis=1)
+        df.loc[~np.logical_or(icd10_series, sr_series), k] = 1
+
+    ### Intermission
+
     click.echo("Adding Converted Demographic Information")
+
+    defcols = ["eid", "31-0.0"]
 
     ### Calculate Float Ages
 
     click.echo(" * float ages")
-    df = dc.calculate_float_ages(df)
+    df, convert_status = dc.calculate_float_ages(df)
+    if convert_status is True:
+        defcols += ["Age1stVisit", "AgeRepVisit", "AgeAtScan"]
+    else:
+        defcols += ["21003-0.0", "21003-1.0", "21003-2.0"] 
 
     ### Create Race Column
 
     click.echo(" * ethnicity")
-    df = dc.add_ethnicity_columns(df)
+    df, convert_status = dc.add_ethnicity_columns(df)
+    if convert_status is True:
+        defcols.append("Race")
 
     ### Create Eductation Columns
 
     click.echo(" * education")
-    df = dc.add_education_columns(df)
+    df, convert_status = dc.add_education_columns(df)
+    if convert_status is True:
+        defcols += ["ISCED", "YearsOfEducation"] 
 
     ### Filter data columns
 
     click.echo("Filtering Data Columns")
 
-    defcols = ["eid", "Age1stVisit", "AgeRepVisit", "AgeAtScan", "Race", "ISCED", "YearsOfEducation", "31-0.0"]
-
     includes = [c for c in orig_columns if c.split("-")[0] in to_include]
 
-    if "31-0.0" in includes:
-        includes.remove("31-0.0")
+    for datafield in ["21003-0.0", "21003-1.0", "21003-2.0", "31-0.0"]:
+        if (datafield in includes) and (datafield in defcols):
+            includes.remove(datafield)
 
-    includes = defcols + includes
+    defcols += sorted(list(cohorts.keys()))
+    includes = defcols + includes + count_icd10 + count_sr
     df = df[includes]
+    df.dropna(axis=1, how="all", inplace=True)
 
     for c in includes:
         if c in time_between_online_cognitive_test_and_imaging.keys():
@@ -408,7 +482,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     ### Check if Imaging Time Point Data Only is Requested
 
-    if img_only:
+    if img_visit_only:
         click.echo("Selecting data acquired at Imaging time point for those datafields using instance 2 codes")
         field_txt = pd.read_table(pkg_resources.resource_filename(__name__, 'field.txt'))
         instance2s = field_txt.loc[field_txt.instance_id == 2, "field_id"].tolist()
