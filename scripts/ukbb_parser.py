@@ -161,13 +161,21 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
                                                     '20137-0.0': 'time_between_SDMT_imaging',
                                                     '20138-0.0': 'time_between_digit_span_imaging'}
 
-    def delta_t_months(datafield, dataframe):
+    def delta_t_days(datafield, dataframe):
         imaging_date = pd.Series([datetime.datetime.strptime(v, '%Y-%m-%d') if isinstance(v, str) else np.nan for v in dataframe['53-2.0']])
         online_test_date = pd.Series([datetime.datetime.strptime(v.split('T')[0], '%Y-%m-%d') if isinstance(v, str) else np.nan for v in dataframe[datafield]])
         time_between = online_test_date - imaging_date
         return np.abs(time_between.dt.days)
 
     ### Reading in the Data Source
+
+    if not os.path.exists(incsv):
+        click.echo("{} does not exist. Please double check the provided file path".format(incsv))
+        sys.exit(1)
+
+    if out is None:
+        click.echo("An out prefix is required. Please provide one and run again.")
+        sys.exit(1)
 
     click.echo("Loading "+incsv)
     incsv_size = os.stat(incsv).st_size # This is in bytes
@@ -474,7 +482,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     for c in includes:
         if c in time_between_online_cognitive_test_and_imaging.keys():
-            df[time_between_online_cognitive_test_and_imaging[c]] = delta_t_days(c) 
+            df[time_between_online_cognitive_test_and_imaging[c]] = delta_t_days(c, df) 
 
     ########################
     ### Finishing Up Now ###

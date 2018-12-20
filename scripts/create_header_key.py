@@ -70,6 +70,7 @@ def create_html_key(df, arglist, outcsv):
         elif col in reverse_tbocti.keys():
             label = reverse_tbocti[col].split("-")[0]
             setup["title"] = reverse_tbocti[col]
+            setup["units"] = "days"
             setup["notes"] = 'Number of days between online cognitive test (<a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id={label}">{label}-*.*</a>) and imaging visit'.format(label=label)
             out_dict[i] = setup
         else:
@@ -78,6 +79,8 @@ def create_html_key(df, arglist, outcsv):
                     info_df.loc[int(col), "field_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id={fi}">{fi}-*.*</a>'.format(fi=info_df.loc[int(col), "field_id"]) 
                     info_df.loc[int(col), "encoding_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/instance.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "encoding_id"]) 
                     info_df.loc[int(col), "instance_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "instance_id"]) 
+                    if not isinstance(info_df.loc[int(col), "notes"], float):
+                        info_df.loc[int(col), "notes"] = info_df.loc[int(col), "notes"].replace("<", "\<").replace(">", "\>")
                 else:
                     info_df.loc[int(col), "field_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id={fi}">{fi}-*.*</a>'.format(fi=col)
             except ValueError:
@@ -89,9 +92,9 @@ def create_html_key(df, arglist, outcsv):
         out_df = pd.concat([out_df, info_df], ignore_index=True, sort=True)
     except TypeError:
         out_df = pd.concat([out_df, info_df], ignore_index=True)
-    html = outcsv.split(".csv")[0] + "_header_key.html"
     out_df = out_df[['field_id', 'title', 'units', 'encoding_id', 'instance_id', 'notes']]
     out_df.fillna("", inplace=True)
+    html = outcsv.split(".csv")[0] + "_header_key.html"
     out_df.to_html(html, escape=False, index=False)
 
     with open(html, 'r') as f:
