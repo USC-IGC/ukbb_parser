@@ -221,17 +221,17 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         for ic in incat:
             if "-" in ic:
                 for n in range(int(ic.split("-")[0]), int(ic.split("-")[1])+1):
-                    to_include += parse_cat_tree(str(n))
+                    to_include += parse_cat_tree(str(n), cat_tree)
             else:
-                to_include += parse_cat_tree(str(ic))
+                to_include += parse_cat_tree(str(ic), cat_tree)
 
     if len(excat) > 0:
         for ec in excat:
             if "-" in ec:
                 for n in range(int(ec.split("-")[0]), int(ec.split("-")[1])+1):
-                    to_exclude += parse_cat_tree(str(n))
+                    to_exclude += parse_cat_tree(str(n), cat_tree)
             else:
-                to_exclude += parse_cat_tree(str(ec))
+                to_exclude += parse_cat_tree(str(ec), cat_tree)
 
     to_include = list(set(sorted(to_include)))
     to_include = [cat for cat in to_include if cat not in to_exclude]
