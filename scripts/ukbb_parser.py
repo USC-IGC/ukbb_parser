@@ -69,26 +69,29 @@ def update(previous, new, output):
         else:
             dataFrame = pd.read_csv(csv)
         return dataFrame
-    pc = read_csv(prevcsv)
-    nc = read_csv(newcsv)
+    pc = read_csv(previous)
+    nc = read_csv(new)
 
     keep = ['eid']
     for col in pc.columns:
         if col not in nc.columns:
             keep.append(col)
-    click.echo("Keeping old columns:", set([dfn.split("-")[0] for dfn in keep]))
+    old_columns = " ".join(set([dfn.split("-")[0] for dfn in keep]))
+    click.echo("\nKeeping old columns: " + old_columns)
 
     new_cols = []
     for col in nc.columns:
         if col not in pc.columns:
             new_cols.append(col)
-    click.echo("New columns:", set([dfn.split("-")[0] for dfn in new_cols]))
+    new_columns = " ".join(set([dfn.split("-")[0] for dfn in new_cols]))
+    click.echo("\nNew columns: " + new_columns)
 
     outdf = pd.merge(pc[keep], nc, how="outer", on="eid")
     except_eid = outdf.columns.tolist()
     except_eid.remove("eid")
     outdf[["eid"]+sorted(except_eid)]
-    outdf.to_csv(outcsv, chunksize=15000, index=False)
+    click.echo("\nWriting Output")
+    outdf.to_csv(output, chunksize=15000, index=False)
 
 parser_desc = """ 
  """
