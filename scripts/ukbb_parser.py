@@ -46,6 +46,9 @@ def check(incsv, datafield):
         first_line = f.readline()
     columns = first_line.strip().split(",")
     datafields = set([col.split("-")[0] for col in columns])
+    datafields = list(datafields)
+    if datafields[0].startswith('"'):
+        datafields = [df[1:] for df in datafields]
     if str(datafield) in datafields:
         click.echo("\nFound {} in CSV\n".format(datafield))
     else:
