@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import demo_conversion as dc
-import condition_filtering as cf
-import create_header_key as chk
+import ukbb_parser.scripts.demo_conversion as dc
+import ukbb_parser.scripts.dcondition_filtering as cf
+import ukbb_parser.scripts.dcreate_header_key as chk
 import pkg_resources
 import pandas as pd
 import numpy as np

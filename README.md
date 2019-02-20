@@ -7,10 +7,17 @@ To avoid repetitive calls for standard demographic variables, we created default
 
 ## Installation 
 
+
+To clone the repository:
+`git clone https://github.com/USC-IGC/ukbb_parser.git`
+
 After downloading or cloning:
 `pip install ukbb_parser`
 
-N.B. This will require administrator/root privileges of the system. If you don't have administrator/root privileges, please try
+*ukbb_parser* can also be installed directly from GitHub using the command
+`pip install git+https://github.com/USC-IGC/ukbb_parser.git`
+
+N.B. The above installation commands will require administrator/root privileges of the system. If you don't have administrator/root privileges, please try
 `pip install --user ukbb_parser`
 
 ## Usages
