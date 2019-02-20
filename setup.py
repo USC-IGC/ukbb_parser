@@ -12,6 +12,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        ukbb_parser=ukbb_parser.scripts.ukbb_parser:ukbb_parser
+        ukbb_parser=ukbb_parser.ukbb_parser.scripts.ukbb_parser:ukbb_parser
     '''
 )
