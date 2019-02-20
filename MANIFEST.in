@@ -1,6 +1,6 @@
 include README.md
-include scripts/field.txt
-include scripts/coding6.tsv
-include scripts/coding19.tsv
-include scripts/icd10_tree.csv
-include scripts/mapped_category_tree.json
+include ukbb_parser/scripts/field.txt
+include ukbb_parser/scripts/coding6.tsv
+include ukbb_parser/scripts/coding19.tsv
+include ukbb_parser/scripts/icd10_tree.csv
+include ukbb_parser/scripts/mapped_category_tree.json

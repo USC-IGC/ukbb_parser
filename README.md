@@ -10,6 +10,9 @@ To avoid repetitive calls for standard demographic variables, we created default
 After downloading or cloning:
 `pip install ukbb_parser`
 
+N.B. This will require administrator/root privileges of the system. If you don't have administrator/root privileges, please try
+`pip install --user ukbb_parser`
+
 ## Usages
 
 ### Display available subcommands
