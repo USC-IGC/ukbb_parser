@@ -5,8 +5,11 @@ The UK Biobank Data Parser (ukbb_parser) is a python-based package that allows e
 
 To avoid repetitive calls for standard demographic variables, we created default output columns for sex, age at the time of the neuroimaging scan, race/ethnicity, and education. Race (Data-Field 21000) is coded first by the larger race group due to inconsistent reporting of ethnicity. Education (Data-Field 6138) is coded according to educational levels in the United Kingdom. These levels are converted to standardized education levels based on the International Standard Classification of Education framework, and estimated years of education is derived using the conversion strategy published by Okbay et al. (2016).
 
-## Installation 
+## Requirements
 
+Please note that this parser uses the Click package, which is not yet available for Python 3.7. Any Python version <=3.6 will be compatible.
+
+## Installation 
 
 To clone the repository:
 `git clone https://github.com/USC-IGC/ukbb_parser.git`
