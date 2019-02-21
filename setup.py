@@ -1,7 +1,7 @@
 try:
     from setuptools import setup, find_packages
 except (ImportError, ModuleNotFoundError) as e:
-    print("Please install setuptools and try again \npip install setuptools")
+    print("Please install setuptools and try again.\npip install setuptools")
     import sys
     sys.exit(1)
 else:
@@ -13,14 +13,15 @@ else:
         packages=find_packages(),
         include_package_data=True,
         install_requires=[
-            'Click',
+            'click',
             'html5lib',
             'numpy>=1.13.3',
             'pandas>=0.20.3'
         ],
         entry_points={
             'console_scripts': [
-                'ukbb_parser = ukbb_parser.scripts.ukbb_parser:ukbb_parser'
+                'ukbb_parser = ukbb_parser.scripts.ukbb_parser:ukbb_parser',
+                'ukbb_parser_test = ukbb_parser.tests.test_installation:main'
                 ]
             }
     )
