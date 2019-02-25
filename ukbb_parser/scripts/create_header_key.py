@@ -4,7 +4,7 @@ import pandas as pd
 import datetime
 
 def create_html_key(df, arglist, outcsv):
-    info_df = pd.read_table(pkg_resources.resource_filename(__name__, 'field.txt'))
+    info_df = pd.read_table(pkg_resources.resource_filename(__name__, 'data/field.txt'))
     info_df = info_df[['field_id', 'title', 'units', 'encoding_id', 'instance_id', 'notes']]
     info_df['ix'] = info_df.field_id
     info_df.set_index('ix', inplace=True)
