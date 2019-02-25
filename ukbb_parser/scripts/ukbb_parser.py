@@ -202,7 +202,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     ### Loading in Mapped Category and Datafields Tree
 
-    with open(pkg_resources.resource_filename(__name__, 'mapped_category_tree.json'), 'r') as f:
+    with open(pkg_resources.resource_filename(__name__, 'data/mapped_category_tree.json'), 'r') as f:
         entire_cat_tree = json.load(f)
     cat_tree = entire_cat_tree["tree"]
 
@@ -294,7 +294,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     if (len(incon) > 0) or (len(excon) > 0):
         click.echo("Filtering by ICD10 conditions")
 
-    coding19 = pd.read_table(pkg_resources.resource_filename(__name__, 'coding19.tsv'), index_col="coding")
+    coding19 = pd.read_table(pkg_resources.resource_filename(__name__, 'data/coding19.tsv'), index_col="coding")
     selectable_icd10 = coding19.loc[coding19.selectable == "Y"].index.tolist()
     
     main_icd_columns = [c for c in orig_columns if c.startswith("41202-")]
@@ -354,7 +354,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     if (len(insr) > 0) or (len(exsr) > 0):
         click.echo("Filtering by Self-Report conditions")
 
-    coding6 = pd.read_table(pkg_resources.resource_filename(__name__, 'coding6.tsv'), index_col="coding")
+    coding6 = pd.read_table(pkg_resources.resource_filename(__name__, 'data/coding6.tsv'), index_col="coding")
 
     sr_columns = [c for c in orig_columns if c.startswith("20002-")]
     include_srs = []
@@ -498,7 +498,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     if img_visit_only:
         click.echo("Selecting data acquired at Imaging time point for those datafields using instance 2 codes")
-        field_txt = pd.read_table(pkg_resources.resource_filename(__name__, 'field.txt'))
+        field_txt = pd.read_table(pkg_resources.resource_filename(__name__, 'data/field.txt'))
         instance2s = field_txt.loc[field_txt.instance_id == 2, "field_id"].tolist()
         instance2s = [str(in2) for in2 in instance2s]
         drop_non_img_tps = []
