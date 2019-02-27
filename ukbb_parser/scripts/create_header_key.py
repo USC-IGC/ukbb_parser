@@ -4,7 +4,7 @@ import pandas as pd
 import datetime
 
 def create_html_key(df, arglist, outcsv):
-    info_df = pd.read_table(pkg_resources.resource_filename(__name__, 'data/field.txt'))
+    info_df = pd.read_csv(pkg_resources.resource_filename(__name__, 'data/field.txt'), sep='\t')
     info_df = info_df[['field_id', 'title', 'units', 'encoding_id', 'instance_id', 'notes']]
     info_df['ix'] = info_df.field_id
     info_df.set_index('ix', inplace=True)
@@ -77,8 +77,8 @@ def create_html_key(df, arglist, outcsv):
             try:
                 if int(col) in info_df.index.tolist():
                     info_df.loc[int(col), "field_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id={fi}">{fi}-*.*</a>'.format(fi=info_df.loc[int(col), "field_id"]) 
-                    info_df.loc[int(col), "encoding_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/instance.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "encoding_id"]) 
-                    info_df.loc[int(col), "instance_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "instance_id"]) 
+                    info_df.loc[int(col), "encoding_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "encoding_id"]) 
+                    info_df.loc[int(col), "instance_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/instance.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "instance_id"]) 
                     if not isinstance(info_df.loc[int(col), "notes"], float):
                         info_df.loc[int(col), "notes"] = info_df.loc[int(col), "notes"].replace("<", "\<").replace(">", "\>")
                 else:

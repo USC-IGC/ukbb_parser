@@ -2,6 +2,7 @@
 import ukbb_parser.scripts.demo_conversion as dc
 import ukbb_parser.scripts.condition_filtering as cf
 import ukbb_parser.scripts.create_header_key as chk
+import ukbb_parser.scripts.level_processing as lp
 import pkg_resources
 import pandas as pd
 import numpy as np
@@ -16,6 +17,20 @@ import os
 ### These are to get rid of warning messages that might worry people. Comment them out when developing and debugging
 import warnings
 warnings.filterwarnings("ignore")
+
+def read_csv(csv):
+    csv_size = os.stat(csv).st_size # This is in bytes
+    if csv_size > 500000000:
+        csv_reader = pd.read_csv(csv, chunksize=15000)
+        chunk_list = []
+        for chunk in csv_reader:
+            click.echo("Loading {}...".format(csv))
+            chunk_list.append(chunk)
+        dataFrame = pd.concat(chunk_list, ignore_index=True)
+        del chunk, chunk_list
+    else:
+        dataFrame = pd.read_csv(csv)
+    return dataFrame
 
 @click.group()
 def ukbb_parser():
@@ -59,19 +74,6 @@ def check(incsv, datafield):
 @click.option("--new", metavar="CSV", help="""File path of new downloaded UK Biobank CSV or CSV of processed results""")
 @click.option("--output", metavar="CSV", help="""File path to write newly updated CSV to""")
 def update(previous, new, output):
-    def read_csv(csv):
-        csv_size = os.stat(csv).st_size # This is in bytes
-        if csv_size > 500000000:
-            csv_reader = pd.read_csv(csv, chunksize=15000)
-            chunk_list = []
-            for chunk in csv_reader:
-                click.echo("Loading {}...".format(csv))
-                chunk_list.append(chunk)
-            dataFrame = pd.concat(chunk_list, ignore_index=True)
-            del chunk, chunk_list
-        else:
-            dataFrame = pd.read_csv(csv)
-        return dataFrame
     pc = read_csv(previous)
     nc = read_csv(new)
 
@@ -124,15 +126,11 @@ parser_desc = """
 #         help="""Output csv will be limited to the data of the cohort(s)""")
 @click.option("--subjects", multiple=True, metavar="SubID", help="""A list of participant IDs to include""")
 @click.option("--dropouts", multiple=True, metavar="dropouts", help="""CSV(s) containing eids of participants who have dropped out of the study""")
-@click.option("--icd10_count", multiple=True, metavar="ICD10Code", 
-        help="Create a binary column for the specified ICD10 conditions only. Ranges can cross consecutive letters, e.g. A00-B99. Ranges within a letter should be specified, A00-A99. A single letter will create a binary column for that group of diseases. Give the input as 'all' to create a column for every self-report condition")
-@click.option("--sr_count", multiple=True, metavar="SRCode", 
-        help="Create a binary column for the specified self-report conditions only. Ranges are acceptable inputs. Give the input as 'all' to create a column for every self-report condition")
 @click.option("--img_subs_only", is_flag=True, help="Use this flag to only keep data of participants with an imaging visit.")
 @click.option("--img_visit_only", is_flag=True, help="Use this flag to only keep data acquired during the imaging visit.")
 @click.option("--fillna",  help="Use this flag to fill blank cells with the flag input, e.g., NA")
-@click.option("--combine", metavar="Spreadsheet", multiple=True, help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'""")
-def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, icd10_count, sr_count, img_subs_only, img_visit_only, fillna, combine):
+@click.option("--combine", metavar="Spreadsheet", multiple=True, help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'; These can be in csv, xls(x) or table formats""")
+def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, img_subs_only, img_visit_only, fillna, combine):
 
     ##################
     ### Setting Up ###
@@ -184,16 +182,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         sys.exit(1)
 
     click.echo("Loading "+incsv)
-    incsv_size = os.stat(incsv).st_size # This is in bytes
-    if incsv_size > 500000000:
-        incsv_reader = pd.read_csv(incsv, chunksize=15000)
-        chunk_list = []
-        for chunk in incsv_reader:
-            chunk_list.append(chunk)
-        df = pd.concat(chunk_list, ignore_index=True)
-        del chunk, chunk_list
-    else:
-        df = pd.read_csv(incsv)
+    df = read_csv(incsv)
 
     ### Delete empty columns
 
@@ -214,14 +203,24 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         if inhdr[0] == "all":
             to_include = [oc.split("-")[0] for oc in orig_columns]
         else:
-            to_include = list(inhdr)
+            to_include = []
+            for ih in inhdr:
+                if "-" in ih:
+                    inhdr_range = list(range(int(ih.split("-")[0]), int(ih.split('-')[1])+1))
+                    to_include += [str(hdr) for hdr in inhdr_range]
+                else:
+                    to_include.append(ih)
     else:
         to_include = []
 
+    to_exclude = []
     if len(exhdr) > 0:
-        to_exclude = list(exhdr)
-    else:
-        to_exclude = []
+        for eh in exhdr:
+            if "-" in eh:
+                exhdr_range = list(range(int(eh.split("-")[0]), int(eh.split('-')[1])+1))
+                to_exclude += [str(hdr) for hdr in exhdr_range]
+            else:
+                to_exclude.append(eh)
 
     if len(incat) > 0: 
         for ic in incat:
@@ -240,7 +239,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
                 to_exclude += parse_cat_tree(str(ec), cat_tree)
 
     to_include = list(set(sorted(to_include)))
-    to_include = [cat for cat in to_include if cat not in to_exclude]
+    to_include = [hdr for hdr in to_include if hdr not in to_exclude]
 
     #######################
     ### Processing Time ###
@@ -294,8 +293,8 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     if (len(incon) > 0) or (len(excon) > 0):
         click.echo("Filtering by ICD10 conditions")
 
-    coding19 = pd.read_table(pkg_resources.resource_filename(__name__, 'data/coding19.tsv'), index_col="coding")
-    selectable_icd10 = coding19.loc[coding19.selectable == "Y"].index.tolist()
+    coding19 = pd.read_csv(pkg_resources.resource_filename(__name__, 'data/icd10_level_map.csv'), index_col="Coding")
+    selectable_icd10 = coding19.loc[coding19.Selectable == "Y"].index.tolist()
     
     main_icd_columns = [c for c in orig_columns if c.startswith("41202-")]
     sec_icd_columns = [c for c in orig_columns if c.startswith("41204-")]
@@ -326,35 +325,10 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     # N.B. Actual filtering happens below in Self-Report section
 
-    count_icd10 = []
-
-    if len(icd10_count) > 0:
-        if icd10_count[0] == "all":
-            count_icd10 = icd10.index.tolist()
-        else:
-            for icd in icd10_count:
-                if (len(icd) == 1) or (icd in selectable_icd10):
-                    count_icd10.append(icd)
-                elif "-" in icd:
-                    count_icd10 += coding19.loc[icd.split("-")[0]+"0" : icd.split("-")[1]+"99999999"].index.tolist()
-                else:
-                    count_icd10 += coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
-
-    for ci in count_icd10:
-        if len(ci) == 1:
-            icd10s = coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
-            df.loc[df[icd_columns].isin(icd10s).any(axis=1), ci] = 1   
-            # There are slice assignment warnings for this 
-        else:
-            df.loc[df[icd_columns].isin([ci]).any(axis=1), ci] = 1   
-            # There are slice assignment warnings for this 
-
     ### Filter subjects by Self-Report conditions
 
     if (len(insr) > 0) or (len(exsr) > 0):
         click.echo("Filtering by Self-Report conditions")
-
-    coding6 = pd.read_table(pkg_resources.resource_filename(__name__, 'data/coding6.tsv'), index_col="coding")
 
     sr_columns = [c for c in orig_columns if c.startswith("20002-")]
     include_srs = []
@@ -385,22 +359,6 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     found_sr_excludes = df[sr_columns].isin(exclude_srs).any(axis=1)
     found_excludes = np.logical_or(found_icd_excludes, found_sr_excludes)
     df = df.loc[~found_excludes]
-
-    count_sr = []
-
-    if len(sr_count) > 0:
-        if sr_count[0] == "all":
-            count_sr += coding6.loc[coding6.selectable == "Y"].index.tolist()
-        else:
-            for sr in sr_count:
-                if "-" in sr:
-                    count_sr += list(range(int(sr.split("-")[0]), int(sr.split("-")[1]) + 1))
-                else:
-                    count_sr += int(sr)
-    
-    for csr in count_sr:
-        df.loc[df[sr_columns].isin([csr]).any(axis=1), csr] = 1   
-        # There are slice assignment warnings for this 
 
     ### Control Time
 
@@ -498,7 +456,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     if img_visit_only:
         click.echo("Selecting data acquired at Imaging time point for those datafields using instance 2 codes")
-        field_txt = pd.read_table(pkg_resources.resource_filename(__name__, 'data/field.txt'))
+        field_txt = pd.read_csv(pkg_resources.resource_filename(__name__, 'data/field.txt'), sep='\t')
         instance2s = field_txt.loc[field_txt.instance_id == 2, "field_id"].tolist()
         instance2s = [str(in2) for in2 in instance2s]
         drop_non_img_tps = []
@@ -527,13 +485,77 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
                 except UnicodeDecodeError:
                     add_df = pd.read_excel(com, encoding="ISO-8859-1")
             else:
-                add_df = pd.read_table(com)
+                add_df = pd.read_csv(com, sep='\t')
             df = df.merge(add_df, on='eid', how='left')
 
     if fillna is not None:
         df.fillna(fillna, inplace=True)
     
     df.to_csv(out+".csv", chunksize=15000, index=False)
+    click.echo("Done!")
+
+@ukbb_parser.command()
+@click.option("--incsv", metavar="CSV", help="""File path of downloaded UK Biobank CSV""")
+@click.option("--outcsv", metavar="CSV", help="""File path to write out to""")
+@click.option("--datatype", metavar="type", 
+        type=click.Choice(['icd10', 'self_report', 'careers']),
+        help="""Data to inventory; Valid choices include: icd10, self_report, careers""")
+@click.option("--level", multiple=True, metavar="level", help="""Level to inventory by; N.B. Please input 0 for the Top level or S for selectable codes""")
+@click.option("--code", multiple=True, metavar="code", help="""Codes to inventory; Use the option 'all' to inventory all categories in the given level; Please use level-appropriate codes; Ranges are allowed""")
+@click.option("--all_codes", is_flag=True, help="""Use this flag if you'd like to obtain additionally obtain individual inventories of all codes""")
+def levels(incsv, outcsv, datatype, code, level, all_codes):
+
+    # Check Inputs First
+
+    if len(level) != len(code):
+        click.echo("Number of --level and --code flags used should match. Please double check your inputs before trying again.")
+        sys.exit(1)
+
+    # Load Datafields from Column Headers
+    with open(incsv, "r") as f:
+        first_line = f.readline()
+    columns = first_line.strip().split(",")
+    datafields = set([col.split("-")[0] for col in columns])
+    datafields = list(datafields)
+    if datafields[0].startswith('"'):
+        datafields = [df[1:] for df in datafields]
+
+    # Isolate the Necessary DataFields
+    if datatype == 'icd10':
+        dfs = ['41202', '41204']
+    elif datatype == 'self_report':
+        dfs = ['20002']
+    elif datatype == 'careers':
+        dfs = ['132']
+
+    # Check to make sure necessary datafields are present
+    click.echo("Currently checking for the required datafields")
+    should_exit = False
+    for d in dfs:
+        if d not in datafields:
+            click.echo("Datafield {} is required for this to work. Please double check your spreadsheet for the datafield before trying again.")
+            should_exit = True
+    if should_exit is True:
+        sys.exit(1)
+
+    # Load in relevant level map
+    level_map = pkg_resources.resource_filename(__name__, 'data/{}_level_map.csv'.format(datatype))
+    
+    # Processing
+    df = read_csv(incsv)
+    df.dropna(axis=1, how="all", inplace=True)
+    original_columns = df.columns.tolist()
+    reldfs = []
+    for c in df.columns:
+        if c.split("-")[0] in dfs:
+            reldfs.append(c)
+    for i, l in enumerate(level):
+        click.echo("Currently conducting an entry inventory of level {} / code {}".format(l, code[i]))
+        df = lp.level_processing(df, datatype, reldfs, level_map, code[i], l, all_codes)
+    df.dropna(axis=1, how="all", inplace=True)
+    new_columns = [col for col in df.columns if col not in original_columns]
+    df = df[original_columns + new_columns]
+    df.to_csv(outcsv, chunksize=15000, index=False)
     click.echo("Done!")
 
 if __name__ == "__main__":

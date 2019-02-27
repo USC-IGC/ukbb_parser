@@ -1,6 +1,6 @@
 include README.md
 include ukbb_parser/scripts/data/field.txt
-include ukbb_parser/scripts/data/coding6.tsv
-include ukbb_parser/scripts/data/coding19.tsv
-include ukbb_parser/scripts/data/icd10_tree.csv
+include ukbb_parser/scripts/data/self_report_level_map.csv
+include ukbb_parser/scripts/data/careers_level_map.csv 
+include ukbb_parser/scripts/data/icd10_level_map.csv  
 include ukbb_parser/scripts/data/mapped_category_tree.json
