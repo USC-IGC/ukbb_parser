@@ -98,7 +98,7 @@ The incon/excon/insr/exsr/incat/excat/inhdr/exhdr/combine flags can all be used 
 
 Example usage:
  
-ukbb_parser parse --incsv ukbb_spreadsheet.csv -o ukbb_subset --incat 100 --excat 135 --incon G35
+`ukbb_parser parse --incsv ukbb_spreadsheet.csv -o ukbb_subset --incat 100 --excat 135 --incon G35`
 
 ### levels
 
@@ -118,9 +118,12 @@ Inputs:
                    individual inventories of all codes
 
 Example usage:
-ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113
-ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113 --level 4 --code 1151010 --all_codes
-ukbb_parser levels --incsv ukbb_spreadsheet.csv --output icd10_inventory.csv --datatype icd10 --level 0 --code "Chapter V" --level 1 --code "Block G00-G09"
+
+`ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113`
+
+`ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113 --level 4 --code 1151010 --all_codes`
+
+`ukbb_parser levels --incsv ukbb_spreadsheet.csv --output icd10_inventory.csv --datatype icd10 --level 0 --code "Chapter V" --level 1 --code "Block G00-G09"`
 
 ### update
 
@@ -133,7 +136,7 @@ Inputs:
 
 Example usage:
 
-ukbb_parser update --previous ukbb_2018_spreadsheet.csv --new ukbb_2019_spreadsheet.csv --output combined_ukbb_2018_2019_spreadsheet.csv
+`ukbb_parser update --previous ukbb_2018_spreadsheet.csv --new ukbb_2019_spreadsheet.csv --output combined_ukbb_2018_2019_spreadsheet.csv`
 
 ### check
 
@@ -145,7 +148,7 @@ Inputs:
 
 Example usage:
 
-ukbb_parser check --incsv ukbb_spreadsheet.csv --datafield 31
+`ukbb_parser check --incsv ukbb_spreadsheet.csv --datafield 31`
 
 ### create_cohorts
 
