@@ -94,7 +94,11 @@ Optional Inputs:
 * `--combine Spreadsheet`    Spreadsheets to combine to output; Please make sure
                            all spreadsheets have an identifier column 'eid'
 
+The incon/excon/insr/exsr/incat/excat/inhdr/exhdr/combine flags can all be used multiple times, e.g., `--incat 110 --incat 134`.
+
 Example usage:
+ 
+ukbb_parser parse --incsv ukbb_spreadsheet.csv -o ukbb_subset --incat 100 --excat 135 --incon G35
 
 ### levels
 
