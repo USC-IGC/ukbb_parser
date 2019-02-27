@@ -123,7 +123,7 @@ Example usage:
 
 `ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113 --level 4 --code 1151010 --all_codes`
 
-`ukbb_parser levels --incsv ukbb_spreadsheet.csv --output icd10_inventory.csv --datatype icd10 --level 0 --code "Chapter V" --level 1 --code "Block G00-G09"`
+`ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv icd10_inventory.csv --datatype icd10 --level 0 --code "Chapter V" --level 1 --code "Block G00-G09"`
 
 ### update
 
