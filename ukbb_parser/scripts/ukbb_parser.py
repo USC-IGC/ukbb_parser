@@ -214,14 +214,24 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         if inhdr[0] == "all":
             to_include = [oc.split("-")[0] for oc in orig_columns]
         else:
-            to_include = list(inhdr)
+            to_include = []
+            for ih in inhdr:
+                if "-" in ih:
+                    inhdr_range = list(range(int(ih.split("-")[0]), int(ih.split('-')[1])+1))
+                    to_include += [str(hdr) for hdr in inhdr_range]
+                else:
+                    to_include.append(ih)
     else:
         to_include = []
 
+    to_exclude = []
     if len(exhdr) > 0:
-        to_exclude = list(exhdr)
-    else:
-        to_exclude = []
+        for eh in exhdr:
+            if "-" in eh:
+                exhdr_range = list(range(int(eh.split("-")[0]), int(eh.split('-')[1])+1))
+                to_exclude += [str(hdr) for hdr in exhdr_range]
+            else:
+                to_exclude.append(eh)
 
     if len(incat) > 0: 
         for ic in incat:
@@ -240,7 +250,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
                 to_exclude += parse_cat_tree(str(ec), cat_tree)
 
     to_include = list(set(sorted(to_include)))
-    to_include = [cat for cat in to_include if cat not in to_exclude]
+    to_include = [hdr for hdr in to_include if hdr not in to_exclude]
 
     #######################
     ### Processing Time ###

@@ -77,8 +77,8 @@ def create_html_key(df, arglist, outcsv):
             try:
                 if int(col) in info_df.index.tolist():
                     info_df.loc[int(col), "field_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id={fi}">{fi}-*.*</a>'.format(fi=info_df.loc[int(col), "field_id"]) 
-                    info_df.loc[int(col), "encoding_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/instance.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "encoding_id"]) 
-                    info_df.loc[int(col), "instance_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "instance_id"]) 
+                    info_df.loc[int(col), "encoding_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "encoding_id"]) 
+                    info_df.loc[int(col), "instance_id"] = '<a href="http://biobank.ctsu.ox.ac.uk/crystal/instance.cgi?id={fi}">{fi}</a>'.format(fi=info_df.loc[int(col), "instance_id"]) 
                     if not isinstance(info_df.loc[int(col), "notes"], float):
                         info_df.loc[int(col), "notes"] = info_df.loc[int(col), "notes"].replace("<", "\<").replace(">", "\>")
                 else:

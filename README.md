@@ -1,7 +1,7 @@
 # UK Biobank Data Parser
 #### Contact: Alyssa Zhu <alyssahz@usc.edu>
 
-The UK Biobank Data Parser (ukbb_parser) is a python-based package that allows easy interfacing with the large UK Biobank dataset.
+The UK Biobank Data Parser (**ukbb_parser**) is a python-based package that allows easy interfacing with the large UK Biobank dataset.
 
 To avoid repetitive calls for standard demographic variables, we created default output columns for sex, age at the time of the neuroimaging scan, race/ethnicity, and education. Race (Data-Field 21000) is coded first by the larger race group due to inconsistent reporting of ethnicity. Education (Data-Field 6138) is coded according to educational levels in the United Kingdom. These levels are converted to standardized education levels based on the International Standard Classification of Education framework, and estimated years of education is derived using the conversion strategy published by Okbay et al. (2016).
 
@@ -11,16 +11,19 @@ Please note that this parser uses the Click package, which is not yet available 
 
 ## Installation 
 
-To clone the repository:
+Two-step process:
+1. To clone the repository:
 `git clone https://github.com/USC-IGC/ukbb_parser.git`
 
-After downloading or cloning:
+2. After downloading or cloning (in the same directory that `git clone` was run in):
 `pip install ukbb_parser`
 
-*ukbb_parser* can also be installed directly from GitHub using the command
+One-step process:
 `pip install git+https://github.com/USC-IGC/ukbb_parser.git`
 
-N.B. The above installation commands will require administrator/root privileges of the system. If you don't have administrator/root privileges, please try
+N.B. The above installation commands will require administrator/root privileges of the system. If you don't have administrator/root privileges, please try adding the `--user` flag.
+
+Example:
 `pip install --user ukbb_parser`
 
 ## Usages
@@ -39,6 +42,7 @@ N.B. The above installation commands will require administrator/root privileges 
 ### parse
 
 The **parse** subcommand will filter the input CSV file with the given input parameters.
+The output csv will contain a set of default columns: eid, age at visits, race, education levels, healthy control cohorts (see output HTML for more details), and sex.
 
 Required Inputs:
 * `-i, --incsv CSV`          File path of the downloaded UK Biobank data csv
@@ -90,6 +94,8 @@ Optional Inputs:
 * `--combine Spreadsheet`    Spreadsheets to combine to output; Please make sure
                            all spreadsheets have an identifier column 'eid'
 
+Example usage:
+
 ### update
 
 The **update** subcommand will combine and/or update CSV files that were downloaded at different times (e.g., after a refresh).
@@ -99,6 +105,10 @@ Inputs:
 * `--new CSV`       File path of new downloaded UK Biobank CSV or a CSV of processed results
 * `--output CSV`    File path to write newly updated CSV to
 
+Example usage:
+
+ukbb_parser update --previous ukbb_2018_spreadsheet.csv --new ukbb_2019_spreadsheet.csv --output combined_ukbb_2018_2019_spreadsheet.csv
+
 ### check
 
 The **check** subcommand will determine if the queried Datafield is included in the downloaded CSV file.
@@ -106,6 +116,10 @@ The **check** subcommand will determine if the queried Datafield is included in 
 Inputs:
 * `--incsv CSV`     File path of downloaded UK Biobank CSV
 * `--datafield df`  Datafield to check for
+
+Example usage:
+
+ukbb_parser check --incsv ukbb_spreadsheet.csv --datafield 31
 
 ### create_cohorts
 
