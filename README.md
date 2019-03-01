@@ -90,9 +90,9 @@ Example usage:
  
 `ukbb_parser parse --incsv ukbb_spreadsheet.csv -o ukbb_subset --incat 100 --excat 135 --incon G35`
 
-### levels
+### inventory
 
-The **levels** subcommand can inventory a specific set of data. 
+The **inventory** subcommand can inventory a specific set of data. 
 
 Code inputs should be derived from the datafield-specific coding pages available on the UK Biobank showcase. As the upper levels of the self-report conditions have non-unique codes (-1), please use the "meaning" instead. If there are spaces in the codes, please use quotes around the entry (see example below).
 
@@ -111,11 +111,11 @@ Inputs:
 
 Example usage:
 
-`ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113`
+`ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113`
 
-`ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113 --level 4 --code 1151010 --all_codes`
+`ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113 --level 4 --code 1151010 --all_codes`
 
-`ukbb_parser levels --incsv ukbb_spreadsheet.csv --outcsv icd10_inventory.csv --datatype icd10 --level 0 --code "Chapter V" --level 1 --code "Block G00-G09"`
+`ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv icd10_inventory.csv --datatype icd10 --level 0 --code "Chapter V" --level 1 --code "Block G00-G09"`
 
 ### update
 
