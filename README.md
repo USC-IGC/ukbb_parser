@@ -92,9 +92,34 @@ Example usage:
 
 ### inventory
 
-The **inventory** subcommand can inventory a specific set of data. 
+The **inventory** subcommand will create binary columns indicating the presence of specified data. The data that can be inventoried are _ICD-10 conditions, self-report (non-cancer) conditions, and careers_. 
 
-Code inputs should be derived from the datafield-specific coding pages available on the UK Biobank showcase. As the upper levels of the self-report conditions have non-unique codes (-1), please use the "meaning" instead. If there are spaces in the codes, please use quotes around the entry (see example below).
+As can be viewed on [the UK Biobank data showcase](http://biobank.ctsu.ox.ac.uk/crystal/index.cgi), these data are organized in a hierarchical tree structure with five levels. At the end of each of the branches are selectable codes, i.e., codes that are used in and can be queried for in the UK Biobank data spreadsheet. By default, the **inventory** subcommand will aggregate all selectable codes within the requested level/code input into a single binary column. To obtain a column for the aggregate column _and_ an additional column for each of the selectable codes within the requested level/code combination, please use `--all_codes`. All selectable codes regardless of level can also be obtained using `--level S --code all`.
+
+Code inputs should be derived from the datafield-specific coding pages available on the UK Biobank showcase. If there are spaces in the codes, please use quotes around the entry (see example below). Multiple levels and codes can be used at once, but please ensure that levels and codes are provided in corresponding pairs.
+
+##### ICD-10 
+
+The coding tree for the ICD-10 conditions can be viewed in part on the pages of either of the datafields ([41202](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=41202) and [41204](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=41204)) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=19).
+
+_Notes_
+* For top level codes (`--level 0`), use the chapter number, e.g., "Chapter I" to indicate "Certain infectious and parasitic diseases".
+* For Level 1 (`--level 1`), add "Block" to the beginning, e.g., "Block A00-09" to indicate "Intestinal infectious diseases"
+
+##### Self-Report (non-cancer)
+
+The coding tree for the self-report (non-cancer) conditions can be viewed on [the datafield page](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=20002) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=6).
+
+_Notes_
+* As can be seen on the coding page, the upper levels of the self-report conditions have non-unique codes (-1). Please use the "Meaning" as the `--code` input instead. 
+
+##### Careers
+
+The coding tree for careers can be viewed on [the datafield page](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=132) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=2). Please note that the coding on the coding page is only available to logged-in users.
+
+Also note that this inventory binarization only produces one column per job code, i.e., a job code will be noted as present so long as it has been indicated in any of the visits/instances.
+
+##### Flags and Usage
 
 Inputs:
 * `--incsv CSV`      File path of downloaded UK Biobank CSV
@@ -106,16 +131,18 @@ Inputs:
 * `--code code`      Codes to inventory; Use the option 'all' to inventory all
                     categories in the given level; Please use level-appropriate
                     codes; Ranges are allowed for selectable codes
-* `--all_codes`      Use this flag if you'd like to obtain additionally obtain
+* `--all_codes`      (optional) Use this flag if you'd like to additionally obtain
                    individual inventories of all codes
 
 Example usage:
 
-`ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113`
+`ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype careers --level 3 --code 6113`
 
-`ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype jobs --level 3 --code 6113 --level 4 --code 1151010 --all_codes`
+`ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype careers --level 3 --code 6113 --level 4 --code 1151010 --all_codes`
 
 `ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv icd10_inventory.csv --datatype icd10 --level 0 --code "Chapter V" --level 1 --code "Block G00-G09"`
+
+`ukbb_parser inventory --incsv ukbb_spreadsheet.csv --outcsv jobs_inventory.csv --datatype self_report --level S --code all`
 
 ### update
 

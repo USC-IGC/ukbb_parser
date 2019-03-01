@@ -27,11 +27,11 @@ def level_processing(dataFrame, datatype, datafields, level_map, code, level, su
 
     # Breakdown Input Codes and Inventory
     if level == "S":
-        selectable = level_map.loc[level_map[selectable_column] == "Y"]
+        selectable = level_map_df.loc[level_map_df[selectable_column].isin(["Y", "Yes"])]
         codes_to_inventory = selectable.index.tolist()
         for s in codes_to_inventory:
             dataFrame.loc[dataFrame[datafields].isin([s]).any(axis=1), col_pref+str(s).replace(" ", "_")] = 1   
-            return dataFrame
+        return dataFrame
     else:
         codes_dict = {}
         codes_to_inventory = get_level_codes(datatype, level_map_df, level, code)
