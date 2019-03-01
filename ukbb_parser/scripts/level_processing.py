@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import pandas as pd
+from ukbb_parser.scripts.utils import find_icd10_ix_range
 
 def level_processing(dataFrame, datatype, datafields, level_map, code, level, sublevels):
     # Parse Input
@@ -9,12 +10,14 @@ def level_processing(dataFrame, datatype, datafields, level_map, code, level, su
     if datatype == "icd10":
         code_column = "Coding"
         parent_column = "Parent"
+        node_column = "Node"
         selectable_column = "Selectable"
         col_pref = "icd10_"
         level_map_df = pd.read_csv(level_map, index_col=code_column)
     elif datatype in ["self_report", "careers"]:
         code_column = "coding"
         parent_column = "parent_id"
+        node_column = "node_id"
         selectable_column = "selectable"
         if datatype == "self_report":
             col_pref = "sr_"
@@ -35,7 +38,7 @@ def level_processing(dataFrame, datatype, datafields, level_map, code, level, su
         for cti in codes_to_inventory:
             codes_dict[cti] = {"branches": [cti],
                                "leaves": []}
-        inventory_codes_dict = get_sublevel_data(codes_dict, level_map_df, parent_column, selectable_column, level)
+        inventory_codes_dict = get_sublevel_data(codes_dict, level_map_df, parent_column, node_column, selectable_column, level)
         for k,v in inventory_codes_dict.items():
             dataFrame.loc[dataFrame[datafields].isin(v['leaves']).any(axis=1), col_pref+str(k).replace(" ", "_")] = 1   
             if sublevels == True:
@@ -43,16 +46,28 @@ def level_processing(dataFrame, datatype, datafields, level_map, code, level, su
                     dataFrame.loc[dataFrame[datafields].isin([l]).any(axis=1), col_pref+str(l).replace(" ", "_")] = 1   
         return dataFrame
 
-def get_sublevel_data(codes_dict, level_map, parent_column, selectable_column, level):
+def get_sublevel_data(codes_dict, level_map, parent_column, node_column, selectable_column, level):
     while level < 5:
         for k, v in codes_dict.items():
             branches = []
             for c in v['branches']:
-                children = level_map.loc[level_map[parent_column] == c]
-                branches += children.loc[children[selectable_column] == "N"].index.tolist()
-                codes_dict[k]['leaves'] += children.loc[children[selectable_column] == "Y"].index.tolist()
-                if level_map.loc[c, selectable_column] == "Y":
-                    codes_dict[k]['leaves'].append(c)
+                try:
+                    node_id = level_map.loc[c, node_column]
+                    if level_map.loc[c, selectable_column] in ["Y", "Yes"]:
+                        codes_dict[k]['leaves'].append(c)
+                    sr_neg_1 = False
+                except KeyError:
+                    node_id = level_map.loc[level_map.meaning == c, node_column].values[0]
+                    sr_neg_1 = True
+                if node_id in level_map[parent_column].tolist():
+                    children = level_map.loc[level_map[parent_column] == node_id]
+                elif str(node_id) in level_map[parent_column].tolist():
+                    children = level_map.loc[level_map[parent_column] == str(node_id)]
+                if sr_neg_1:
+                    branches += children.loc[children[selectable_column].isin(["N", "No"]), "meaning"].tolist()
+                else:
+                    branches += children.loc[children[selectable_column].isin(["N", "No"])].index.tolist()
+                codes_dict[k]['leaves'] += children.loc[children[selectable_column].isin(["Y", "Yes"])].index.tolist()
             codes_dict[k]['branches'] = branches
         level += 1
 
@@ -65,15 +80,32 @@ def get_level_codes(datatype, level_map, level, code):
     if datatype == "icd10":
         if code == "all":
             codes_to_inventory = level_map.loc[level_map.Level == level].index.tolist()
-        elif ("-" in code) and (level in [3, 4]):
+        elif ("-" in code) and ("Block" not in code):
+            start_loc = code.split("-")[0] 
+            end_loc = code.split("-")[1]
             level_df = level_map.loc[level_map.Level == level]
-            codes_to_inventory += level_df.loc[code.split("-")[0]+"0" : code.split("-")[1]+"99999999"].index.tolist()
+            start_loc, end_loc = find_icd10_ix_range(level_df, start_loc, end_loc)
+            codes_to_inventory += level_df.loc[start_loc: end_loc].index.tolist()
+        else:
+            codes_to_inventory.append(code)
+    elif datatype == "self_report":
+        if code == "all":
+            level_codes = level_map.loc[level_map.Level == level]
+            codes_to_inventory = []
+            for i, row in level_codes.iterrows():
+                if i == -1:
+                    codes_to_inventory.append(row["meaning"])
+                else:
+                    codes_to_inventory.append(int(i))
         elif "-" in code:
             level_df = level_map.loc[level_map.Level == level]
-            codes_to_inventory += level_df.loc[code.split("-")[0] : code.split("-")[1]].index.tolist()
+            code_range += list(range(int(code.split("-")[0]), int(code.split("-")[1]) + 1))
+            codes_to_inventory += level_df.loc[level_df.index.isin(code_range)].index.tolist()
+        elif not code[0].isdigit():
+            codes_to_inventory.append(code)
         else:
-            codes_to_inventory += level_map.loc[code+"0" : code+"99999999"].index.tolist()
-    elif datatype in ["self_report", "careers"]:
+            codes_to_inventory.append(int(code))
+    elif datatype ==  "careers":
         if code == "all":
             codes_to_inventory = level_map.loc[level_map.Level == level].index.tolist()
         elif "-" in code:

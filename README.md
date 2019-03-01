@@ -42,6 +42,7 @@ Example:
 ### parse
 
 The **parse** subcommand will filter the input CSV file with the given input parameters.
+
 The output csv will contain a set of default columns: eid, age at visits, race, education levels, healthy control cohorts (see output HTML for more details), and sex. 
 
 Required Inputs:
@@ -51,12 +52,12 @@ Required Inputs:
 Optional Inputs:
 * `--incon ICD10Code`        ICD10 Diagnosis codes you wish to include. Least 
                            common denominators are acceptable, e.g. --incon F. 
-                           Ranges are also acceptable inputs. Please include 
-                           chapters for both ends, e.g. F10-F20
+                           Ranges are also acceptable inputs, e.g., F10-F20,
+                           and can span across letters
 * `--excon ICD10Code`        ICD10 Diagnosis codes you wish to exclude. Least 
                            common denominators are acceptable, e.g. --incon F. 
-                           Ranges are also acceptable inputs. Please include 
-                           chapters for both ends, e.g. F10-F20
+                           Ranges are also acceptable inputs, e.g., F10-F20, 
+                           and can span across letters
 * `--insr SRCode`            Self-Report codes you wish to include. Ranges are
                            acceptable inputs.
 * `--exsr SRCode`            Self-Report codes you wish to exclude. Ranges are
@@ -74,17 +75,6 @@ Optional Inputs:
 * `--subjects SubID`         A list of participant IDs to include
 * `--dropouts dropouts`      CSV(s) containing eids of participants who have
                            dropped out of the study
-* `--icd10_count ICD10Code`  Create a binary column for the specified ICD10
-                           conditions only. Ranges can cross consecutive
-                           letters, e.g. A00-B99. Ranges within a letter
-                           should be specified, A00-A99. A single letter will
-                           create a binary column for that group of diseases.
-                           Give the input as 'all' to create a column for
-                           every self-report condition
-* `--sr_count SRCode`        Create a binary column for the specified self-
-                           report conditions only. Ranges are acceptable
-                           inputs. Give the input as 'all' to create a column
-                           for every self-report condition
 * `--img_subs_only`          Use this flag to only keep data of participants
                            with an imaging visit.
 * `--img_visit_only`         Use this flag to only keep data acquired during the
@@ -102,7 +92,9 @@ Example usage:
 
 ### levels
 
-The **levels** subcommand can inventory a specific set of data. If there are spaces in the codes, please use quotes around the entry (see example below).
+The **levels** subcommand can inventory a specific set of data. 
+
+Code inputs should be derived from the datafield-specific coding pages available on the UK Biobank showcase. As the upper levels of the self-report conditions have non-unique codes (-1), please use the "meaning" instead. If there are spaces in the codes, please use quotes around the entry (see example below).
 
 Inputs:
 * `--incsv CSV`      File path of downloaded UK Biobank CSV

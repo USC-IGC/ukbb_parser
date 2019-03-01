@@ -16,7 +16,7 @@ else:
             'click',
             'html5lib',
             'numpy>=1.13.3',
-            'pandas>=0.20.3'
+            'pandas>=0.21.0'
         ],
         entry_points={
             'console_scripts': [

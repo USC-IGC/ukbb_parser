@@ -3,6 +3,7 @@ import ukbb_parser.scripts.demo_conversion as dc
 import ukbb_parser.scripts.condition_filtering as cf
 import ukbb_parser.scripts.create_header_key as chk
 import ukbb_parser.scripts.level_processing as lp
+from ukbb_parser.scripts.utils import read_csv, find_icd10_ix_range, find_icd10_letter_ixs
 import pkg_resources
 import pandas as pd
 import numpy as np
@@ -17,20 +18,6 @@ import os
 ### These are to get rid of warning messages that might worry people. Comment them out when developing and debugging
 import warnings
 warnings.filterwarnings("ignore")
-
-def read_csv(csv):
-    csv_size = os.stat(csv).st_size # This is in bytes
-    if csv_size > 500000000:
-        csv_reader = pd.read_csv(csv, chunksize=15000)
-        chunk_list = []
-        for chunk in csv_reader:
-            click.echo("Loading {}...".format(csv))
-            chunk_list.append(chunk)
-        dataFrame = pd.concat(chunk_list, ignore_index=True)
-        del chunk, chunk_list
-    else:
-        dataFrame = pd.read_csv(csv)
-    return dataFrame
 
 @click.group()
 def ukbb_parser():
@@ -105,9 +92,9 @@ parser_desc = """
 @click.option("-i", "--incsv", metavar="CSV", help="""File path of the downloaded UK Biobank data csv""")
 @click.option("-o", "--out", help="""Output prefix""")
 @click.option("--incon", multiple=True, metavar="ICD10Code",
-        help="ICD10 Diagnosis codes you wish to include. Least common denominators are acceptable, e.g. --incon F. For ranges, please keep them within the same letter, e.g. F10-20") 
+        help="ICD10 Diagnosis codes you wish to include. Least common denominators are acceptable, e.g. --incon F. Ranges are also acceptable inputs, e.g. F10-F20, and can span across letters")
 @click.option("--excon", multiple=True, metavar="ICD10Code",
-        help="ICD10 Diagnosis codes you wish to exclude. Least common denominators are acceptable, e.g. --excon F. For ranges, please keep them within the same letter, e.g. F10-20") 
+        help="ICD10 Diagnosis codes you wish to exclude. Least common denominators are acceptable, e.g. --excon F. Ranges are also acceptable inputs, e.g. F10-F20, and can span across letters") 
 @click.option("--insr", multiple=True, metavar="SRCode",
         help="Self-Report codes you wish to include. Ranges are acceptable inputs.")
 @click.option("--exsr", multiple=True, metavar="SRCode",
@@ -307,9 +294,10 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             if icd in selectable_icd10:
                 include_icd.append(icd)
             elif "-" in icd:
-                include_icd += coding19.loc[icd.split("-")[0]+"0" : icd.split("-")[1]+"99999999"].index.tolist()
+                start_loc, end_loc = find_icd10_ix_range(coding19, icd.split("-")[0], icd.split("-")[1])
+                include_icd += coding19.loc[start_loc : end_loc].index.tolist()
             else:
-                include_icd += coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
+                include_icd += find_icd10_letter_ixs(coding19, icd)
 
     exclude_icd = []
 
@@ -319,9 +307,10 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             if icd in selectable_icd10:
                 exclude_icd.append(icd)
             elif "-" in icd:
-                exclude_icd += coding19.loc[icd.split("-")[0]+"0" : icd.split("-")[1]+"99999999"].index.tolist()
+                start_loc, end_loc = find_icd10_ix_range(coding19, icd.split("-")[0], icd.split("-")[1])
+                exclude_icd += coding19.loc[start_loc : end_loc].index.tolist()
             else:
-                exclude_icd += coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
+                exclude_icd += find_icd10_letter_ixs(coding19, icd)
 
     # N.B. Actual filtering happens below in Self-Report section
 
@@ -390,9 +379,12 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             if icd in selectable_icd10:
                 icd10_excludes.append(icd)
             elif "-" in icd:
-                icd10_excludes += coding19.loc[icd.split("-")[0]+"0" : icd.split("-")[1]+"99999999"].index.tolist()
+                excon_ix_0 = icd.split("-")[0]
+                excon_ix_1 = icd.split("-")[1]
+                start_loc, end_loc = find_icd10_ix_range(coding19, excon_ix_0, excon_ix_1)
+                icd10_excludes += coding19.loc[start_loc : end_loc].index.tolist()
             else:
-                icd10_excludes += coding19.loc[icd+"0" : icd+"99999999"].index.tolist()
+                icd10_excludes += find_icd10_letter_ixs(coding19, icd)
 
         icd10_series = df[icd_columns].isin(icd10_excludes).any(axis=1)
         sr_series = np.zeros_like(icd10_series)
@@ -440,7 +432,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             includes.remove(datafield)
 
     defcols += sorted(list(cohorts.keys()))
-    includes = defcols + includes + count_icd10 + count_sr
+    includes = defcols + includes
     df = df[includes]
     df.dropna(axis=1, how="all", inplace=True)
 
