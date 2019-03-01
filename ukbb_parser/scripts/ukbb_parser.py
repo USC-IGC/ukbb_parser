@@ -495,7 +495,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 @click.option("--level", multiple=True, metavar="level", help="""Level to inventory by; N.B. Please input 0 for the Top level or S for selectable codes""")
 @click.option("--code", multiple=True, metavar="code", help="""Codes to inventory; Use the option 'all' to inventory all categories in the given level; Please use level-appropriate codes; Ranges are allowed""")
 @click.option("--all_codes", is_flag=True, help="""Use this flag if you'd like to obtain additionally obtain individual inventories of all codes""")
-def levels(incsv, outcsv, datatype, code, level, all_codes):
+def inventory(incsv, outcsv, datatype, code, level, all_codes):
 
     # Check Inputs First
 

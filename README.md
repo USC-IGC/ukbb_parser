@@ -7,7 +7,7 @@ To avoid repetitive calls for standard demographic variables, we created default
 
 ## Requirements
 
-Please note that this parser uses the Click package, which is not yet available for Python 3.7. Any Python version <=3.6 will be compatible.
+Please note that this parser uses the Click package, which sometimes has problems installing with Python 3.7. Any Python version <=3.6 will be compatible.
 
 ## Installation 
 
