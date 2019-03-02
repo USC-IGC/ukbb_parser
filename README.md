@@ -98,24 +98,24 @@ As can be viewed on [the UK Biobank data showcase](http://biobank.ctsu.ox.ac.uk/
 
 Code inputs should be derived from the datafield-specific coding pages available on the UK Biobank showcase. If there are spaces in the codes, please use quotes around the entry (see example below). Multiple levels and codes can be used at once, but please ensure that levels and codes are provided in corresponding pairs.
 
-##### ICD-10 
+#### ICD-10 
 
 The coding tree for the ICD-10 conditions can be viewed in part on the pages of either of the datafields ([41202](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=41202) and [41204](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=41204)) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=19).
 
 _Notes_
-* For top level codes (`--level 0`), use the chapter number, e.g., "Chapter I" to indicate "Certain infectious and parasitic diseases".
-* For Level 1 (`--level 1`), add "Block" to the beginning, e.g., "Block A00-09" to indicate "Intestinal infectious diseases"
+* For top level codes (`--level 0`), use the chapter number as the `--code` input, e.g., "Chapter II" to indicate "Neoplasms".
+* For Level 1 (`--level 1`), add "Block" to the beginning of the `--code` input, e.g., "Block A00-09" to indicate "Intestinal infectious diseases"
 
-##### Self-Report (non-cancer)
+#### Self-Report (non-cancer)
 
 The coding tree for the self-report (non-cancer) conditions can be viewed on [the datafield page](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=20002) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=6).
 
 _Notes_
 * As can be seen on the coding page, the upper levels of the self-report conditions have non-unique codes (-1). Please use the "Meaning" as the `--code` input instead. 
 
-##### Careers
+#### Careers
 
-The coding tree for careers can be viewed on [the datafield page](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=132) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=2). Please note that the coding on the coding page is only available to logged-in users.
+The coding tree for careers can be viewed on the datafield pages([132](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=132) and [22617](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=22617)) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=2). Please note that the coding on the coding page is only available to logged-in users.
 
 Also note that this inventory binarization only produces one column per job code, i.e., a job code will be noted as present so long as it has been indicated in any of the visits/instances.
 

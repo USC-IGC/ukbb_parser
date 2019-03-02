@@ -494,7 +494,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         help="""Data to inventory; Valid choices include: icd10, self_report, careers""")
 @click.option("--level", multiple=True, metavar="level", help="""Level to inventory by; N.B. Please input 0 for the Top level or S for selectable codes""")
 @click.option("--code", multiple=True, metavar="code", help="""Codes to inventory; Use the option 'all' to inventory all categories in the given level; Please use level-appropriate codes; Ranges are allowed""")
-@click.option("--all_codes", is_flag=True, help="""Use this flag if you'd like to obtain additionally obtain individual inventories of all codes""")
+@click.option("--all_codes", is_flag=True, help="""(optional) Use this flag if you'd like to obtain additionally obtain individual inventories of all codes""")
 def inventory(incsv, outcsv, datatype, code, level, all_codes):
 
     # Check Inputs First
@@ -518,16 +518,25 @@ def inventory(incsv, outcsv, datatype, code, level, all_codes):
     elif datatype == 'self_report':
         dfs = ['20002']
     elif datatype == 'careers':
-        dfs = ['132']
+        dfs = ['132', '22617']
 
     # Check to make sure necessary datafields are present
     click.echo("Currently checking for the required datafields")
     should_exit = False
+    missing_df = 0
     for d in dfs:
         if d not in datafields:
-            click.echo("Datafield {} is required for this to work. Please double check your spreadsheet for the datafield before trying again.")
-            should_exit = True
-    if should_exit is True:
+            if datatype == "careers":
+                click.echo("Caution: Datafield {} is not included in your data.".format(d))
+                missing_df += 1
+                if missing_df == 2:
+                    click.echo("The relevant datafields have not been found. Please double check your input spreadsheet for the datafields before trying again.")
+                    should_exit = True
+            else:
+                click.echo("Datafield {} is required for this to work. Please double check your input spreadsheet for the datafield before trying again.".format(d))
+                should_exit = True
+                break
+    if should_exit:
         sys.exit(1)
 
     # Load in relevant level map
