@@ -20,7 +20,7 @@ else:
         ],
         entry_points={
             'console_scripts': [
-                'ukbb_parser = ukbb_parser.scripts.ukbb_parser:ukbb_parser',
+                'ukbb_parser = ukbb_parser.scripts.cli:ukbb_parser',
                 'ukbb_parser_test = ukbb_parser.tests.test_installation:main'
                 ]
             }
