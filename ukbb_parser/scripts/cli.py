@@ -478,6 +478,9 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
                     add_df = pd.read_excel(com, encoding="ISO-8859-1")
             else:
                 add_df = pd.read_csv(com, sep='\t')
+            if "eid" not in add_df.columns:
+                click.echo("eid was not found in {}".format(com))
+                sys.exit(1)
             df = df.merge(add_df, on='eid', how='left')
 
     if fillna is not None:
