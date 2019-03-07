@@ -522,6 +522,9 @@ def inventory(incsv, outcsv, datatype, code, level, all_codes):
         dfs = ['20002']
     elif datatype == 'careers':
         dfs = ['132', '22617']
+    else:
+        click.echo("--datatype was not specified correctly. Please check inputs and try again.")
+        sys.exit(1)
 
     # Check to make sure necessary datafields are present
     click.echo("Currently checking for the required datafields")
