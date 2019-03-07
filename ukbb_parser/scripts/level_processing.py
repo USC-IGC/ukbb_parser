@@ -63,6 +63,8 @@ def get_sublevel_data(codes_dict, level_map, parent_column, node_column, selecta
                     children = level_map.loc[level_map[parent_column] == node_id]
                 elif str(node_id) in level_map[parent_column].tolist():
                     children = level_map.loc[level_map[parent_column] == str(node_id)]
+                else:
+                    continue
                 if sr_neg_1:
                     branches += children.loc[children[selectable_column].isin(["N", "No"]), "meaning"].tolist()
                 else:
