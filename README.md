@@ -4,8 +4,8 @@
 The UK Biobank Data Parser (**ukbb_parser**) is a python-based package that allows easy interfacing with the large UK Biobank dataset (Zhu et al., OHBM 2019).
 
 To avoid repetitive calls for standard demographic variables, we created default output columns for sex, age at the time of the neuroimaging scan, race/ethnicity, and education. Race (Data-Field 21000) is coded first by the larger race group due to inconsistent reporting of ethnicity. Education (Data-Field 6138) is coded according to educational levels in the United Kingdom. These levels are converted to standardized education levels based on the International Standard Classification of Education framework, and estimated years of education is derived using the conversion strategy published by Okbay et al. (2016).
- 
-## How to cite
+
+## How to cite 
 
 Zhu, A.H., Salminen, L.E., Thompson P.M., Jahanshad N. "The UK Biobank Data Parser: a tool with built in and customizable filters for brain studies." (2019) Organization for Human Brain Mapping. Rome, Italy, June 9-13, 2019.
 
@@ -183,7 +183,7 @@ In Development
 
 Zhu, A.H., Salminen, L.E., Thompson P.M., Jahanshad N. "The UK Biobank Data Parser: a tool with built in and customizable filters for brain studies." (2019) Organization for Human Brain Mapping. Rome, Italy, June 9-13, 2019.
 
-Okbay, A., Beauchamp, J. P., Fontana, M. A., Lee, J. J., Pers, T. H., Rietveld, C. A., ... & Oskarsson, S. (2016). Genome-wide association study identifies 74 loci associated with educational attainment. Nature, 533(7604), 539.
+Okbay, A., Beauchamp, J.P., Fontana, M.A., Lee, J.J., Pers, T.H., Rietveld, C.A., ... & Oskarsson, S. (2016). Genome-wide association study identifies 74 loci associated with educational attainment. Nature, 533(7604), 539.
 
 ## Acknowledgments 
 
