@@ -188,3 +188,5 @@ Okbay, A., Beauchamp, J.P., Fontana, M.A., Lee, J.J., Pers, T.H., Rietveld, C.A.
 ## Acknowledgments 
 
 This package is developed using the UK Biobank Resource under Application Number 11559.
+
+Funding was provided in part by NIH R01-AG059874 (Jahanshad).
