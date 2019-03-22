@@ -8,7 +8,7 @@ def read_csv(csv):
         csv_reader = pd.read_csv(csv, chunksize=15000)
         chunk_list = []
         for chunk in csv_reader:
-            click.echo("Loading {}...".format(csv))
+            print("Loading {}...".format(csv))
             chunk_list.append(chunk)
         dataFrame = pd.concat(chunk_list, ignore_index=True)
         del chunk, chunk_list
