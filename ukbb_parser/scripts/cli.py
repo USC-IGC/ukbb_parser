@@ -470,7 +470,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         for com in combine:
             click.echo('Adding {} data to output spreadsheet'.format(com))
             if com.endswith('csv'):
-                add_df = pd.read_csv(com)
+                add_df = read_csv(com)
             elif com.endswith('xls') or com.endswith('xlsx'):
                 try:
                     add_df = pd.read_excel(com)
@@ -479,8 +479,8 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             else:
                 add_df = pd.read_csv(com, sep='\t')
             if "eid" not in add_df.columns:
-                click.echo("eid was not found in {}".format(com))
-                sys.exit(1)
+                click.echo("eid was not found in {}. Skipping for now.".format(com))
+                continue
             df = df.merge(add_df, on='eid', how='left')
 
     if fillna is not None:

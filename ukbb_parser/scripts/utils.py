@@ -5,10 +5,12 @@ import os
 def read_csv(csv):
     csv_size = os.stat(csv).st_size # This is in bytes
     if csv_size > 500000000:
-        csv_reader = pd.read_csv(csv, chunksize=15000)
+        csv_reader = pd.read_csv(csv, chunksize=15000, encoding='ISO-8859-1')
         chunk_list = []
+        counter = 1
         for chunk in csv_reader:
-            print("Loading {}...".format(csv))
+            print("Loading chunk {}...".format(counter))
+            counter += 1
             chunk_list.append(chunk)
         dataFrame = pd.concat(chunk_list, ignore_index=True)
         del chunk, chunk_list
