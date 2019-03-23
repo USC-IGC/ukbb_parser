@@ -15,7 +15,7 @@ def read_csv(csv):
         dataFrame = pd.concat(chunk_list, ignore_index=True)
         del chunk, chunk_list
     else:
-        dataFrame = pd.read_csv(csv)
+        dataFrame = pd.read_csv(csv, encoding='ISO-8859-1')
     return dataFrame
 
 def find_icd10_ix_range(dataFrame, start_loc, end_loc):
