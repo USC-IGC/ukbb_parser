@@ -59,8 +59,8 @@ def check(incsv, datafield):
 @ukbb_parser.command()
 @click.option("--previous", metavar="CSV", help="""File path of previous downloaded UK Biobank CSV""")
 @click.option("--new", metavar="CSV", help="""File path of new downloaded UK Biobank CSV or CSV of processed results""")
-@click.option("--output", metavar="CSV", help="""File path to write newly updated CSV to""")
-def update(previous, new, output):
+@click.option("--outcsv", metavar="CSV", help="""File path to write newly updated CSV to""")
+def update(previous, new, outcsv):
     pc = read_csv(previous)
     nc = read_csv(new)
 
@@ -71,19 +71,19 @@ def update(previous, new, output):
     old_columns = " ".join(set([dfn.split("-")[0] for dfn in keep]))
     click.echo("\nKeeping old columns: " + old_columns)
 
-    new_cols = []
+    new_cols = ['eid']
     for col in nc.columns:
         if col not in pc.columns:
             new_cols.append(col)
     new_columns = " ".join(set([dfn.split("-")[0] for dfn in new_cols]))
     click.echo("\nNew columns: " + new_columns)
 
-    outdf = pd.merge(pc[keep], nc, how="outer", on="eid")
+    outdf = pd.merge(pc[keep], nc[new_cols], how="outer", on="eid")
     except_eid = outdf.columns.tolist()
     except_eid.remove("eid")
-    outdf[["eid"]+sorted(except_eid)]
-    click.echo("\nWriting Output")
-    outdf.to_csv(output, chunksize=15000, index=False)
+    outdf[["eid"]+sorted(except_eid, key=lambda x: int(x.split("-")[0]))]
+    click.echo("\nWriting "+outcsv)
+    outdf.to_csv(outcsv, chunksize=15000, index=False)
 
 parser_desc = """ 
  """
@@ -481,7 +481,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             if "eid" not in add_df.columns:
                 click.echo("eid was not found in {}. Skipping for now.".format(com))
                 continue
-            df = df.merge(add_df, on='eid', how='left')
+            df = df.merge(add_df, on='eid', how='left', suffixes=("", "_"+com[:5]))
 
     if fillna is not None:
         df.fillna(fillna, inplace=True)
