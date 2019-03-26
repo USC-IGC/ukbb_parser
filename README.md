@@ -157,11 +157,11 @@ The **update** subcommand will combine and/or update CSV files that were downloa
 Inputs:
 * `--previous CSV`  File path of previous downloaded UK Biobank CSV
 * `--new CSV`       File path of new downloaded UK Biobank CSV or a CSV of processed results
-* `--output CSV`    File path to write newly updated CSV to
+* `--outcsv CSV`    File path to write newly updated CSV to
 
 Example usage:
 
-`ukbb_parser update --previous ukbb_2018_spreadsheet.csv --new ukbb_2019_spreadsheet.csv --output combined_ukbb_2018_2019_spreadsheet.csv`
+`ukbb_parser update --previous ukbb_2018_spreadsheet.csv --new ukbb_2019_spreadsheet.csv --outcsv combined_ukbb_2018_2019_spreadsheet.csv`
 
 ### check
 

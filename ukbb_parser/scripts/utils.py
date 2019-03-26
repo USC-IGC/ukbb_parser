@@ -2,20 +2,37 @@
 import pandas as pd
 import os
 
-def read_csv(csv):
-    csv_size = os.stat(csv).st_size # This is in bytes
-    if csv_size > 500000000:
-        csv_reader = pd.read_csv(csv, chunksize=15000, encoding='ISO-8859-1')
+def read_spreadsheet(datafile, filetype='csv'):
+    delimiter = None
+    file_reader = pd.read_csv
+    if filetype=='unknown':
+        if datafile.endswith(".csv"):
+            file_reader = pd.read_csv
+        elif datafile.endswith(".xls") or datafile.endswith(".xlsx"):
+            file_reader = pd.read_excel
+        else:
+            file_reader = pd.read_csv
+            delimiter = "\t"
+    file_size = os.stat(datafile).st_size # This is in bytes
+    if file_size > 500000000:
+        if delimiter:
+            reader_object = file_reader(datafile, chunksize=15000, encoding='ISO-8859-1', delimiter=delimiter)
+        else:
+            reader_object = file_reader(datafile, chunksize=15000, encoding='ISO-8859-1')
         chunk_list = []
         counter = 1
-        for chunk in csv_reader:
+        for chunk in reader_object:
             print("Loading chunk {}...".format(counter))
             counter += 1
             chunk_list.append(chunk)
         dataFrame = pd.concat(chunk_list, ignore_index=True)
         del chunk, chunk_list
     else:
-        dataFrame = pd.read_csv(csv, encoding='ISO-8859-1')
+        if delimiter:
+            dataFrame = file_reader(datafile, encoding='ISO-8859-1', delimiter=delimiter)
+        else:
+            dataFrame = file_reader(datafile, encoding='ISO-8859-1')
+
     return dataFrame
 
 def find_icd10_ix_range(dataFrame, start_loc, end_loc):

@@ -3,7 +3,7 @@ import ukbb_parser.scripts.demo_conversion as dc
 import ukbb_parser.scripts.condition_filtering as cf
 import ukbb_parser.scripts.create_header_key as chk
 import ukbb_parser.scripts.level_processing as lp
-from ukbb_parser.scripts.utils import read_csv, find_icd10_ix_range, find_icd10_letter_ixs
+from ukbb_parser.scripts.utils import read_spreadsheet, find_icd10_ix_range, find_icd10_letter_ixs
 import pkg_resources
 import pandas as pd
 import numpy as np
@@ -61,8 +61,8 @@ def check(incsv, datafield):
 @click.option("--new", metavar="CSV", help="""File path of new downloaded UK Biobank CSV or CSV of processed results""")
 @click.option("--outcsv", metavar="CSV", help="""File path to write newly updated CSV to""")
 def update(previous, new, outcsv):
-    pc = read_csv(previous)
-    nc = read_csv(new)
+    pc = read_spreadsheet(previous, 'csv')
+    nc = read_spreadsheet(new, 'csv')
 
     keep = ['eid']
     for col in pc.columns:
@@ -71,16 +71,17 @@ def update(previous, new, outcsv):
     old_columns = " ".join(set([dfn.split("-")[0] for dfn in keep]))
     click.echo("\nKeeping old columns: " + old_columns)
 
-    new_cols = ['eid']
+    new_cols = []
     for col in nc.columns:
         if col not in pc.columns:
             new_cols.append(col)
     new_columns = " ".join(set([dfn.split("-")[0] for dfn in new_cols]))
     click.echo("\nNew columns: " + new_columns)
 
-    outdf = pd.merge(pc[keep], nc[new_cols], how="outer", on="eid")
+    outdf = pd.merge(pc[keep], nc, how="outer", on="eid")
     except_eid = outdf.columns.tolist()
     except_eid.remove("eid")
+    outdf.dropna(axis=1, how="all", inplace=True)
     outdf[["eid"]+sorted(except_eid, key=lambda x: int(x.split("-")[0]))]
     click.echo("\nWriting "+outcsv)
     outdf.to_csv(outcsv, chunksize=15000, index=False)
@@ -169,7 +170,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         sys.exit(1)
 
     click.echo("Loading "+incsv)
-    df = read_csv(incsv)
+    df = read_spreadsheet(incsv, 'csv')
 
     ### Delete empty columns
 
@@ -469,15 +470,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     if len(combine) > 0:
         for com in combine:
             click.echo('Adding {} data to output spreadsheet'.format(com))
-            if com.endswith('csv'):
-                add_df = read_csv(com)
-            elif com.endswith('xls') or com.endswith('xlsx'):
-                try:
-                    add_df = pd.read_excel(com)
-                except UnicodeDecodeError:
-                    add_df = pd.read_excel(com, encoding="ISO-8859-1")
-            else:
-                add_df = pd.read_csv(com, sep='\t')
+            add_df = read_spreadsheet(com, 'unknown')
             if "eid" not in add_df.columns:
                 click.echo("eid was not found in {}. Skipping for now.".format(com))
                 continue
@@ -549,7 +542,7 @@ def inventory(incsv, outcsv, datatype, code, level, all_codes):
     level_map = pkg_resources.resource_filename(__name__, 'data/{}_level_map.csv'.format(datatype))
     
     # Processing
-    df = read_csv(incsv)
+    df = read_spreadsheet(incsv)
     df.dropna(axis=1, how="all", inplace=True)
     original_columns = df.columns.tolist()
     reldfs = []
