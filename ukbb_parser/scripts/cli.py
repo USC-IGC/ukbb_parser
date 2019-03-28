@@ -61,7 +61,9 @@ def check(incsv, datafield):
 @click.option("--new", metavar="CSV", help="""File path of new downloaded UK Biobank CSV or CSV of processed results""")
 @click.option("--outcsv", metavar="CSV", help="""File path to write newly updated CSV to""")
 def update(previous, new, outcsv):
+    click.echo("Loading "+previous)
     pc = read_spreadsheet(previous, 'csv')
+    click.echo("Loading "+new)
     nc = read_spreadsheet(new, 'csv')
 
     keep = ['eid']
