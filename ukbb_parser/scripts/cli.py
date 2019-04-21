@@ -118,9 +118,11 @@ parser_desc = """
 @click.option("--dropouts", multiple=True, metavar="dropouts", help="""CSV(s) containing eids of participants who have dropped out of the study""")
 @click.option("--img_subs_only", is_flag=True, help="Use this flag to only keep data of participants with an imaging visit.")
 @click.option("--img_visit_only", is_flag=True, help="Use this flag to only keep data acquired during the imaging visit.")
+@click.option("--no_convert", is_flag=True, help="Use this flag if you don't want the demographic conversions run")
+@click.option("--rcols", is_flag=True, help='Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")')
 @click.option("--fillna",  help="Use this flag to fill blank cells with the flag input, e.g., NA")
 @click.option("--combine", metavar="Spreadsheet", multiple=True, help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'; These can be in csv, xls(x) or table formats""")
-def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, img_subs_only, img_visit_only, fillna, combine):
+def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, img_subs_only, img_visit_only, no_convert, rcols, fillna, combine):
 
     ##################
     ### Setting Up ###
@@ -177,6 +179,16 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     ### Delete empty columns
 
     df.dropna(axis=1, how="all", inplace=True)
+    if rcols:
+        revert_names = {}
+        for c in df.columns:
+            if (len(c.split(".") == 3)) and c.startswith("X"):
+                dfr = c.split(".")[0][1:]
+                instr = c.split(".")[1]
+                entryr = c.split(".")[2]
+                revert_names[c] = "{}-{}.{}".format(dfr, instr, entryr)
+        df.replace(columns=revert_names, inplace=True)
+
     orig_columns = df.columns
 
     ### Loading in Mapped Category and Datafields Tree
@@ -375,6 +387,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
                }
 
     click.echo("Indicating Control Cohorts")
+    ### TODO: add Healthy cohort
 
     for k, v in cohorts.items():
         icd10_excludes = []
@@ -397,32 +410,45 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     ### Intermission
 
-    click.echo("Adding Converted Demographic Information")
+    defcols = ["eid"]
+    if "31-0.0" in orig_columns:
+        defcols.append("31-0.0")
+    if "22001-0.0" in orig_columns:
+        defcols.append("22001-0.0")
 
-    defcols = ["eid", "31-0.0"]
-
-    ### Calculate Float Ages
-
-    click.echo(" * float ages")
-    df, convert_status = dc.calculate_float_ages(df)
-    if convert_status is True:
-        defcols += ["Age1stVisit", "AgeRepVisit", "AgeAtScan"]
+    if no_convert:
+        for c in df.columns:
+            if c.startswith("6138-") or c.startswith("21000-") or c.startswith("21003-"):
+                defcols.append(c)
     else:
-        defcols += ["21003-0.0", "21003-1.0", "21003-2.0"] 
+        click.echo("Adding Converted Demographic Information")
 
-    ### Create Race Column
+        ### Calculate Float Ages
 
-    click.echo(" * ethnicity")
-    df, convert_status = dc.add_ethnicity_columns(df)
-    if convert_status is True:
-        defcols.append("Race")
+        click.echo(" * float ages")
+        df, convert_status = dc.calculate_float_ages(df)
+        if convert_status is True:
+            age_cols = ["Age1stVisit", "AgeRepVisit", "AgeAtScan"]
+        else:
+            age_cols = ["21003-0.0", "21003-1.0", "21003-2.0"]
+        for c in age_cols:
+            if c in df.columns:
+                defcols.append(c)
 
-    ### Create Eductation Columns
+        ### Create Race Column
+        ### TODO: create separate columns for race and ethnicity?
 
-    click.echo(" * education")
-    df, convert_status = dc.add_education_columns(df)
-    if convert_status is True:
-        defcols += ["ISCED", "YearsOfEducation"] 
+        click.echo(" * ethnicity")
+        df, convert_status = dc.add_ethnicity_columns(df)
+        if convert_status is True:
+            defcols.append("Race")
+
+        ### Create Eductation Columns
+
+        click.echo(" * education")
+        df, convert_status = dc.add_education_columns(df)
+        if convert_status is True:
+            defcols += ["ISCED", "YearsOfEducation"] 
 
     ### Filter data columns
 
@@ -430,7 +456,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     includes = [c for c in orig_columns if c.split("-")[0] in to_include]
 
-    for datafield in ["21003-0.0", "21003-1.0", "21003-2.0", "31-0.0"]:
+    for datafield in ["21003-0.0", "21003-1.0", "21003-2.0", "31-0.0", "22001-0.0"]:
         if (datafield in includes) and (datafield in defcols):
             includes.remove(datafield)
 
@@ -439,9 +465,10 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     df = df[includes]
     df.dropna(axis=1, how="all", inplace=True)
 
-    for c in includes:
-        if c in time_between_online_cognitive_test_and_imaging.keys():
-            df[time_between_online_cognitive_test_and_imaging[c]] = delta_t_days(c, df) 
+    if "53-2.0" in df.columns:
+        for c in includes:
+            if c in time_between_online_cognitive_test_and_imaging.keys():
+                df[time_between_online_cognitive_test_and_imaging[c]] = delta_t_days(c, df) 
 
     ########################
     ### Finishing Up Now ###
