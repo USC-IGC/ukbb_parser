@@ -85,6 +85,8 @@ Optional Inputs:
                            with an imaging visit.
 * `--img_visit_only`         Use this flag to only keep data acquired during the
                            imaging visit.
+* `--no_convert`             Use this flag if you don't want the demographic conversions run
+* `--rcols`                  Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")
 * `--fillna TEXT`            Use this flag to fill blank cells with the flag
                            input, e.g., NA
 * `--combine Spreadsheet`    Spreadsheets to combine to output; Please make sure
