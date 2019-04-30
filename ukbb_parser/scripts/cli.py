@@ -44,6 +44,9 @@ def ukbb_parser():
 @click.option("--incsv", metavar="CSV", help="""File path of downloaded UK Biobank CSV""")
 @click.option("--datafield", metavar="df", help="""Datafield to check for""")
 def check(incsv, datafield):
+    '''
+    Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
+    '''
     with open(incsv, 'r') as f:
         first_line = f.readline()
     columns = first_line.strip().split(",")
@@ -61,6 +64,9 @@ def check(incsv, datafield):
 @click.option("--new", metavar="CSV", help="""File path of new downloaded UK Biobank CSV or CSV of processed results""")
 @click.option("--outcsv", metavar="CSV", help="""File path to write newly updated CSV to""")
 def update(previous, new, outcsv):
+    '''
+    Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
+    '''
     click.echo("Loading "+previous)
     pc = read_spreadsheet(previous, 'csv')
     click.echo("Loading "+new)
@@ -123,6 +129,9 @@ parser_desc = """
 @click.option("--fillna",  help="Use this flag to fill blank cells with the flag input, e.g., NA")
 @click.option("--combine", metavar="Spreadsheet", multiple=True, help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'; These can be in csv, xls(x) or table formats""")
 def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, img_subs_only, img_visit_only, no_convert, rcols, fillna, combine):
+    '''
+    Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
+    '''
 
     ##################
     ### Setting Up ###
@@ -503,7 +512,12 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             if "eid" not in add_df.columns:
                 click.echo("eid was not found in {}. Skipping for now.".format(com))
                 continue
-            df = df.merge(add_df, on='eid', how='left', suffixes=("", "_"+com[:5]))
+            else:
+                if not pd.api.types.is_numeric_dtype(add_df.eid):
+                    valid_eids = [eid for eid in add_df.eid if eid.isdigit()]
+                    add_df = add_df[add_df.eid.isin(valid_eids)]
+                    add_df.eid = add_df.eid.astype(int)
+                df = df.merge(add_df, on='eid', how='left', suffixes=("", "_"+com[:5]))
 
     if fillna is not None:
         df.fillna(fillna, inplace=True)
@@ -521,6 +535,9 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 @click.option("--code", multiple=True, metavar="code", help="""Codes to inventory; Use the option 'all' to inventory all categories in the given level; Please use level-appropriate codes; Ranges are allowed""")
 @click.option("--all_codes", is_flag=True, help="""(optional) Use this flag if you'd like to obtain additionally obtain individual inventories of all codes""")
 def inventory(incsv, outcsv, datatype, code, level, all_codes):
+    '''
+    Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
+    '''
 
     # Check Inputs First
 

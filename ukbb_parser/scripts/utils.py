@@ -10,13 +10,16 @@ def read_spreadsheet(datafile, filetype='csv'):
             file_reader = pd.read_csv
         elif datafile.endswith(".xls") or datafile.endswith(".xlsx"):
             file_reader = pd.read_excel
-        else:
+        elif datafile.endswith(".txt") or datafile.endswith(".tsv"):
             file_reader = pd.read_csv
             delimiter = "\t"
+        else:
+            file_reader = pd.read_csv
+            delimiter='\s+'
     file_size = os.stat(datafile).st_size # This is in bytes
     if file_size > 500000000:
         if delimiter:
-            reader_object = file_reader(datafile, chunksize=15000, encoding='ISO-8859-1', delimiter=delimiter)
+            reader_object = file_reader(datafile, chunksize=15000, encoding='ISO-8859-1', sep=delimiter)
         else:
             reader_object = file_reader(datafile, chunksize=15000, encoding='ISO-8859-1')
         chunk_list = []
@@ -29,7 +32,7 @@ def read_spreadsheet(datafile, filetype='csv'):
         del chunk, chunk_list
     else:
         if delimiter:
-            dataFrame = file_reader(datafile, encoding='ISO-8859-1', delimiter=delimiter)
+            dataFrame = file_reader(datafile, encoding='ISO-8859-1', sep=delimiter)
         else:
             dataFrame = file_reader(datafile, encoding='ISO-8859-1')
 
