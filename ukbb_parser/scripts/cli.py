@@ -87,10 +87,16 @@ def update(previous, new, outcsv):
     click.echo("\nNew columns: " + new_columns)
 
     outdf = pd.merge(pc[keep], nc, how="outer", on="eid")
-    except_eid = outdf.columns.tolist()
-    except_eid.remove("eid")
+    except_eid = list(outdf.columns)
+    str_columns = []
+    for c in outdf.columns.tolist():
+        try:
+            int(c.split("-")[0])
+        except ValueError:
+            except_eid.remove(c)
+            str_columns.append(c)
     outdf.dropna(axis=1, how="all", inplace=True)
-    outdf[["eid"]+sorted(except_eid, key=lambda x: int(x.split("-")[0]))]
+    outdf[str_columns+sorted(except_eid, key=lambda x: int(x.split("-")[0]))]
     click.echo("\nWriting "+outcsv)
     outdf.to_csv(outcsv, chunksize=15000, index=False)
 
