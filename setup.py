@@ -9,7 +9,7 @@ else:
         name='ukbb_parser',
         author="Alyssa H. Zhu",
         description="ukbb_parser is a python-based parser for UK Biobank data",
-        version='0.2.1',
+        version='0.2.2',
         packages=find_packages(),
         include_package_data=True,
         install_requires=[

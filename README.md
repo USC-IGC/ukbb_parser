@@ -7,7 +7,7 @@ To avoid repetitive calls for standard demographic variables, we created default
 
 ## How to cite 
 
-Zhu, A.H., Salminen, L.E., Thompson P.M., Jahanshad N. "The UK Biobank Data Parser: a tool with built in and customizable filters for brain studies." (2019) Organization for Human Brain Mapping. Rome, Italy, June 9-13, 2019.
+Zhu, A.H., Salminen, L.E., Thompson, P.M., Jahanshad, N. "The UK Biobank Data Parser: a tool with built in and customizable filters for brain studies." (2019) Organization for Human Brain Mapping. Rome, Italy, June 9-13, 2019.
 
 ## Requirements
 
