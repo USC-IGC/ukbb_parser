@@ -71,3 +71,28 @@ def find_icd10_letter_ixs(dataFrame, letter):
             ixs.append(ix)
 
     return ixs
+
+def parse_cat_tree(category, cattree):
+    class Namespace(object):
+        pass
+    ns = Namespace()
+    ns.results = []
+
+    def inner(data):
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if k == "datafields":
+                    ns.results += v
+                else:
+                    for item in v:
+                        if item not in cattree.keys():
+                            print("Warning: Category {} not found in mapped tree".format(item))
+                        else:
+                            inner(cattree[item])
+
+    if category not in cattree.keys():
+        print("Warning: Category {} not found in mapped tree".format(category))
+    else:
+        inner(cattree[category])
+
+    return ns.results 

@@ -167,15 +167,17 @@ Example usage:
 
 ### check
 
-The **check** subcommand will determine if the queried Datafield is included in the downloaded CSV file.
+The **check** subcommand will determine if the queried Datafield or Category is included in the downloaded CSV file.
 
 Inputs:
 * `--incsv CSV`     File path of downloaded UK Biobank CSV
 * `--datafield df`  Datafield to check for
+* `--category cat`  Category to check for
 
 Example usage:
 
 `ukbb_parser check --incsv ukbb_spreadsheet.csv --datafield 31`
+`ukbb_parser check --incsv ukbb_spreadsheet.csv --category 100`
 
 ### create_cohorts
 

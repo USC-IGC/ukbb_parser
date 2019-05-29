@@ -3,7 +3,7 @@ import ukbb_parser.scripts.demo_conversion as dc
 import ukbb_parser.scripts.condition_filtering as cf
 import ukbb_parser.scripts.create_header_key as chk
 import ukbb_parser.scripts.level_processing as lp
-from ukbb_parser.scripts.utils import read_spreadsheet, find_icd10_ix_range, find_icd10_letter_ixs
+from ukbb_parser.scripts.utils import read_spreadsheet, find_icd10_ix_range, find_icd10_letter_ixs, parse_cat_tree
 import pkg_resources
 import pandas as pd
 import numpy as np
@@ -43,8 +43,11 @@ def ukbb_parser():
 @ukbb_parser.command()
 @click.option("--incsv", metavar="CSV", help="""File path of downloaded UK Biobank CSV""")
 @click.option("--datafield", metavar="df", help="""Datafield to check for""")
-def check(incsv, datafield):
+@click.option("--category", metavar="cat", help="""Category to check for""")
+def check(incsv, datafield, category):
     '''
+    Determine if the queried Datafield or Category is included in the downloaded CSV file.
+
     Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
     '''
     with open(incsv, 'r') as f:
@@ -54,10 +57,29 @@ def check(incsv, datafield):
     datafields = list(datafields)
     if datafields[0].startswith('"'):
         datafields = [df[1:] for df in datafields]
-    if str(datafield) in datafields:
-        click.echo("\nFound {} in CSV\n".format(datafield))
-    else:
-        click.echo("\nDid not find {} in CSV\n".format(datafield))
+    if datafield:
+        if str(datafield) in datafields:
+            click.echo("\nFound {} in CSV\n".format(datafield))
+        else:
+            click.echo("\nDid not find {} in CSV\n".format(datafield))
+    if category:
+        with open(pkg_resources.resource_filename(__name__, 'data/mapped_category_tree.json'), 'r') as f:
+            entire_cat_tree = json.load(f)
+        cat_tree = entire_cat_tree["tree"]
+        cat_dfs = parse_cat_tree(category, cat_tree)
+        if len(cat_dfs) == 0:
+            click.echo("\n{} does not appear to be a valid or mapped category\n".format(category))
+            sys.exit(0)
+        else:
+            y = 0
+            n = 0
+            for datafield in cat_dfs:
+                if str(datafield) in datafields:
+                    y += 1
+                else:
+                    click.echo("Did not find {} in CSV\n".format(datafield))
+                    n += 1
+            click.echo("\nFound {} data-fields.\nMissing {} data-fields\n".format(y, n))
 
 @ukbb_parser.command()
 @click.option("--previous", metavar="CSV", help="""File path of previous downloaded UK Biobank CSV""")
@@ -65,6 +87,8 @@ def check(incsv, datafield):
 @click.option("--outcsv", metavar="CSV", help="""File path to write newly updated CSV to""")
 def update(previous, new, outcsv):
     '''
+    Combine multiple spreadsheet files.
+
     Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
     '''
     click.echo("Loading "+previous)
@@ -136,6 +160,8 @@ parser_desc = """
 @click.option("--combine", metavar="Spreadsheet", multiple=True, help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'; These can be in csv, xls(x) or table formats""")
 def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, img_subs_only, img_visit_only, no_convert, rcols, fillna, combine):
     '''
+    Filter the input CSV file with the given input parameters.
+
     Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
     '''
 
@@ -147,24 +173,6 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     pd.set_option("display.max_colwidth", 500)
     
     ### Functions... We like functions
-
-    def parse_cat_tree(category, cattree):
-        class Namespace(object):
-            pass
-        ns = Namespace()
-        ns.results = []
-
-        def inner(data):
-            if isinstance(data, dict):
-                for k, v in data.items():
-                    if k == "datafields":
-                        ns.results += v
-                    else:
-                        for item in v:
-                            inner(cattree[item])
-
-        inner(cattree[category])
-        return ns.results 
 
     time_between_online_cognitive_test_and_imaging = {'20134-0.0': 'time_between_pairs_matching_imaging',
                                                     '20135-0.0': 'time_between_FI_imaging',
@@ -542,6 +550,8 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 @click.option("--all_codes", is_flag=True, help="""(optional) Use this flag if you'd like to obtain additionally obtain individual inventories of all codes""")
 def inventory(incsv, outcsv, datatype, code, level, all_codes):
     '''
+    Create binary columns indicating the presence of specified data.
+
     Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
     '''
 
