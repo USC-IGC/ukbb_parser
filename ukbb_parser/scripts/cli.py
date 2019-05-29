@@ -72,14 +72,15 @@ def check(incsv, datafield, category):
             sys.exit(0)
         else:
             y = 0
-            n = 0
+            missing = []
             for datafield in cat_dfs:
                 if str(datafield) in datafields:
                     y += 1
                 else:
-                    click.echo("Did not find {} in CSV\n".format(datafield))
-                    n += 1
-            click.echo("\nFound {} data-fields.\nMissing {} data-fields\n".format(y, n))
+                    missing.append(datafield)
+            click.echo("\nFound {} data-fields.\nMissing {} data-fields\n".format(y, len(missing)))
+            if len(missing) > 0:
+                click.echo(",".join(missing)+'\n')
 
 @ukbb_parser.command()
 @click.option("--previous", metavar="CSV", help="""File path of previous downloaded UK Biobank CSV""")
