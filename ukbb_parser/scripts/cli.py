@@ -474,13 +474,17 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         if convert_status is True:
             defcols += ["ISCED", "YearsOfEducation"] 
 
+    genetic_components = [c for c in orig_columns if c.startswith("22009-")]
+    if len(genetic_components) > 10:
+        defcols += genetic_components[:10]
+
     ### Filter data columns
 
     click.echo("Filtering Data Columns")
 
     includes = [c for c in orig_columns if c.split("-")[0] in to_include]
 
-    for datafield in ["21003-0.0", "21003-1.0", "21003-2.0", "31-0.0", "22001-0.0"]:
+    for datafield in ["21003-0.0", "21003-1.0", "21003-2.0", "31-0.0", "22001-0.0"] + genetic_components[:10]:
         if (datafield in includes) and (datafield in defcols):
             includes.remove(datafield)
 
