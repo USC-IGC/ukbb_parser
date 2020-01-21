@@ -3,13 +3,14 @@ import pandas as pd
 import os
 
 def read_spreadsheet(datafile, filetype='csv'):
-    delimiter = None
+    delimiter = ','
     file_reader = pd.read_csv
     if filetype=='unknown':
         if datafile.endswith(".csv"):
             file_reader = pd.read_csv
         elif datafile.endswith(".xls") or datafile.endswith(".xlsx"):
             file_reader = pd.read_excel
+            delimiter = None
         elif datafile.endswith(".txt") or datafile.endswith(".tsv"):
             file_reader = pd.read_csv
             delimiter = "\t"
@@ -18,10 +19,17 @@ def read_spreadsheet(datafile, filetype='csv'):
             delimiter='\s+'
     file_size = os.stat(datafile).st_size # This is in bytes
     if file_size > 500000000:
+        chunk_size=10000
+        if not datafile.endswith(".xls") or not datafile.endswith(".xlsx"):
+            with open(datafile, "r") as f:
+                first_line = f.readline().strip()
+                num_columns = len(first_line.split(delimiter))
+                chunk_size = int(chunk_size*6000/num_columns)
+            print("Number of Columns:", num_columns, "\nChunk size:", chunk_size)
         if delimiter:
-            reader_object = file_reader(datafile, chunksize=15000, encoding='ISO-8859-1', sep=delimiter)
+            reader_object = file_reader(datafile, chunksize=chunk_size, encoding='ISO-8859-1', sep=delimiter)
         else:
-            reader_object = file_reader(datafile, chunksize=15000, encoding='ISO-8859-1')
+            reader_object = file_reader(datafile, chunksize=chunk_size, encoding='ISO-8859-1')
         chunk_list = []
         counter = 1
         for chunk in reader_object:
