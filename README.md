@@ -134,6 +134,7 @@ Also note that this inventory binarization only produces one column per job code
 Inputs:
 * `--incsv CSV`      File path of downloaded UK Biobank CSV
 * `--outcsv CSV`     File path to write out to
+* `--rcols`          Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")
 * `--datatype type`  Data to inventory; Valid choices include: icd10,
                     self_report, careers
 * `--level level`    Level to inventory by; N.B. Please input 0 for the Top

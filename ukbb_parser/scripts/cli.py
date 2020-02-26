@@ -69,7 +69,7 @@ def check(incsv, datafield, category):
         cat_dfs = parse_cat_tree(category, cat_tree)
         if len(cat_dfs) == 0:
             click.echo("\n{} does not appear to be a valid or mapped category\n".format(category))
-            sys.exit(0)
+            sys.exit(1)
         else:
             y = 0
             missing = []
@@ -300,7 +300,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             df = df[df["53-2.0"].notnull()]
         else:
             click.echo("Cannot select imaged subset of participants")
-            sys.exit(0)
+            sys.exit(1)
 
     ### Remove study dropouts
 
@@ -325,6 +325,10 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     main_icd_columns = [c for c in orig_columns if c.startswith("41202-")]
     sec_icd_columns = [c for c in orig_columns if c.startswith("41204-")]
     icd_columns = main_icd_columns + sec_icd_columns
+
+    if (len(icd_columns) == 0) and ((len(incon) > 0) or (len(excon) > 0)):
+        click.echo("ICD 10 columns are not available for diagnosis condition filtering. Please check input spreadsheet before trying again.")
+        sys.exit(1)
 
     include_icd = []
 
@@ -355,10 +359,14 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     ### Filter subjects by Self-Report conditions
 
+    sr_columns = [c for c in orig_columns if c.startswith("20002-")]
+    if (len(sr_columns) == 0) and ((len(insr) > 0) or (len(exsr) > 0)):
+        click.echo("Self-report columns are not available for filtering. Please check input spreadsheet before trying again.")
+        sys.exit(1)
+
     if (len(insr) > 0) or (len(exsr) > 0):
         click.echo("Filtering by Self-Report conditions")
 
-    sr_columns = [c for c in orig_columns if c.startswith("20002-")]
     include_srs = []
 
     if len(insr) > 0:
@@ -410,27 +418,30 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
                                         + list(range(1244,1252)) + list(range(1258, 1265))}
                }
 
-    click.echo("Indicating Control Cohorts")
     ### TODO: add Healthy cohort
 
-    for k, v in cohorts.items():
-        icd10_excludes = []
-        for icd in v['icd10']:
-            if icd in selectable_icd10:
-                icd10_excludes.append(icd)
-            elif "-" in icd:
-                excon_ix_0 = icd.split("-")[0]
-                excon_ix_1 = icd.split("-")[1]
-                start_loc, end_loc = find_icd10_ix_range(coding19, excon_ix_0, excon_ix_1)
-                icd10_excludes += coding19.loc[start_loc : end_loc].index.tolist()
-            else:
-                icd10_excludes += find_icd10_letter_ixs(coding19, icd)
+    if (len(icd_columns) > 0) and (len(sr_columns) > 0):
+        click.echo("Indicating Control Cohorts")
+        for k, v in cohorts.items():
+            icd10_excludes = []
+            for icd in v['icd10']:
+                if icd in selectable_icd10:
+                    icd10_excludes.append(icd)
+                elif "-" in icd:
+                    excon_ix_0 = icd.split("-")[0]
+                    excon_ix_1 = icd.split("-")[1]
+                    start_loc, end_loc = find_icd10_ix_range(coding19, excon_ix_0, excon_ix_1)
+                    icd10_excludes += coding19.loc[start_loc : end_loc].index.tolist()
+                else:
+                    icd10_excludes += find_icd10_letter_ixs(coding19, icd)
 
-        icd10_series = df[icd_columns].isin(icd10_excludes).any(axis=1)
-        sr_series = np.zeros_like(icd10_series)
-        if 'sr' in v.keys():
-            sr_series = df[sr_columns].isin(v['sr']).any(axis=1)
-        df.loc[~np.logical_or(icd10_series, sr_series), k] = 1
+            icd10_series = df[icd_columns].isin(icd10_excludes).any(axis=1)
+            sr_series = np.zeros_like(icd10_series)
+            if 'sr' in v.keys():
+                sr_series = df[sr_columns].isin(v['sr']).any(axis=1)
+            df.loc[~np.logical_or(icd10_series, sr_series), k] = 1
+    else:
+        click.echo("Warning: Cannot indicate control subjects. ICD-10 or self-report data fields are missing")
 
     ### Intermission
 
@@ -456,7 +467,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         click.echo(" * float ages")
         df, convert_status = dc.calculate_float_ages(df)
         if convert_status is True:
-            age_cols = ["Age1stVisit", "AgeRepVisit", "AgeAtScan"]
+            age_cols = ["Age1stVisit", "AgeRepVisit", "AgeAtScan", "AgeAt2ndScan"]
         else:
             age_cols = ["21003-0.0", "21003-1.0", "21003-2.0"]
         for c in age_cols:
@@ -522,7 +533,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         for col in df.columns:
             if (col.split("-")[0] in instance2s):
                 if len(col.split("-")) > 1:
-                    if col.split("-")[1].split(".")[1] != "2":
+                    if col.split("-")[1].split(".")[0] not in ["2", "3"]:
                         drop_non_img_tps.append(col)
         df = df.drop(drop_non_img_tps, axis=1)
 
@@ -556,13 +567,14 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 @ukbb_parser.command()
 @click.option("--incsv", metavar="CSV", help="""File path of downloaded UK Biobank CSV""")
 @click.option("--outcsv", metavar="CSV", help="""File path to write out to""")
+@click.option("--rcols", is_flag=True, help='Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")')
 @click.option("--datatype", metavar="type", 
         type=click.Choice(['icd10', 'self_report', 'careers']),
         help="""Data to inventory; Valid choices include: icd10, self_report, careers""")
 @click.option("--level", multiple=True, metavar="level", help="""Level to inventory by; N.B. Please input 0 for the Top level or S for selectable codes""")
 @click.option("--code", multiple=True, metavar="code", help="""Codes to inventory; Use the option 'all' to inventory all categories in the given level; Please use level-appropriate codes; Ranges are allowed""")
 @click.option("--all_codes", is_flag=True, help="""(optional) Use this flag if you'd like to obtain additionally obtain individual inventories of all codes""")
-def inventory(incsv, outcsv, datatype, code, level, all_codes):
+def inventory(incsv, outcsv, rcols, datatype, code, level, all_codes):
     '''
     Create binary columns indicating the presence of specified data.
 
@@ -619,6 +631,16 @@ def inventory(incsv, outcsv, datatype, code, level, all_codes):
     
     # Processing
     df = read_spreadsheet(incsv)
+    if rcols:
+        revert_names = {}
+        for c in df.columns:
+            if (len(c.split(".") == 3)) and c.startswith("X"):
+                dfr = c.split(".")[0][1:]
+                instr = c.split(".")[1]
+                entryr = c.split(".")[2]
+                revert_names[c] = "{}-{}.{}".format(dfr, instr, entryr)
+        df.replace(columns=revert_names, inplace=True)
+
     df.dropna(axis=1, how="all", inplace=True)
     original_columns = df.columns.tolist()
     reldfs = []

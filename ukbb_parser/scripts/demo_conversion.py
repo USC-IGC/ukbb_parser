@@ -4,12 +4,12 @@ import numpy as np
 def calculate_float_ages(dataFrame):
     convert = True
     if "Age1stVisit" not in dataFrame.columns:
-        for col in ["34-0.0", "52-0.0", "53-0.0", "53-1.0", "53-2.0"]: # add "53-3.0" later 
+        for col in ["34-0.0", "52-0.0", "53-0.0", "53-1.0", "53-2.0", "53-3.0"]: 
             if col not in dataFrame.columns:
                 convert = False
         
         if convert is True:
-            for i, v in enumerate(["Age1stVisit", "AgeRepVisit", "AgeAtScan"]):
+            for i, v in enumerate(["Age1stVisit", "AgeRepVisit", "AgeAtScan", "AgeAt2ndScan"]):
                 try:
                     y = [int(d.split('-')[0]) for d in dataFrame["53-%i.0" %i]]
                     m = [int(d.split('-')[1]) for d in dataFrame["53-%i.0" %i]]

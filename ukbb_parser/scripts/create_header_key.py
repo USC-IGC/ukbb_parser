@@ -39,6 +39,10 @@ def create_html_key(df, arglist, outcsv):
             setup["title"] = "Age during Scan Visit to Assessment Center"
             setup["notes"] = 'Approximated float version of <a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=21003">21003-2.0</a>"'
             out_dict[i] = setup
+        elif col == "AgeAt2ndScan":
+            setup["title"] = "Age during Repeat/Second Scan Visit to Assessment Center"
+            setup["notes"] = 'Approximated float version of <a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=21003">21003-2.0</a>"'
+            out_dict[i] = setup
         elif col == "Race":
             setup["title"] = "Participant Race"
             setup["notes"] = 'Converted from and uses same data encoding as <a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=21000">21000-*.*</a>"'
