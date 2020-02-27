@@ -206,12 +206,12 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     if rcols:
         revert_names = {}
         for c in df.columns:
-            if (len(c.split(".") == 3)) and c.startswith("X"):
+            if (len(c.split(".")) == 3) and c.startswith("X"):
                 dfr = c.split(".")[0][1:]
                 instr = c.split(".")[1]
                 entryr = c.split(".")[2]
                 revert_names[c] = "{}-{}.{}".format(dfr, instr, entryr)
-        df.replace(columns=revert_names, inplace=True)
+        df.rename(columns=revert_names, inplace=True)
 
     orig_columns = df.columns
 
@@ -591,9 +591,23 @@ def inventory(incsv, outcsv, rcols, datatype, code, level, all_codes):
     with open(incsv, "r") as f:
         first_line = f.readline()
     columns = first_line.strip().split(",")
-    datafields = set([col.split("-")[0] for col in columns])
-    datafields = list(datafields)
-    if datafields[0].startswith('"'):
+    if rcols:
+        datafields = []
+        revert_names = {}
+        for c in columns:
+            if (len(c.split(".")) == 3) and (c.startswith("X") or c.startswith('"X')):
+                if c.startswith('"'):
+                    c = c[1:-1]
+                dfr = c.split(".")[0][1:]
+                if dfr not in datafields:
+                    datafields.append(dfr)
+                instr = c.split(".")[1]
+                entryr = c.split(".")[2]
+                revert_names[c] = "{}-{}.{}".format(dfr, instr, entryr)
+    else:
+        datafields = set([col.split("-")[0] for col in columns])
+        datafields = list(datafields)
+    if datafields[0][0] == '"': 
         datafields = [df[1:] for df in datafields]
 
     # Isolate the Necessary DataFields
@@ -632,14 +646,7 @@ def inventory(incsv, outcsv, rcols, datatype, code, level, all_codes):
     # Processing
     df = read_spreadsheet(incsv)
     if rcols:
-        revert_names = {}
-        for c in df.columns:
-            if (len(c.split(".") == 3)) and c.startswith("X"):
-                dfr = c.split(".")[0][1:]
-                instr = c.split(".")[1]
-                entryr = c.split(".")[2]
-                revert_names[c] = "{}-{}.{}".format(dfr, instr, entryr)
-        df.replace(columns=revert_names, inplace=True)
+        df.rename(columns=revert_names, inplace=True)
 
     df.dropna(axis=1, how="all", inplace=True)
     original_columns = df.columns.tolist()
