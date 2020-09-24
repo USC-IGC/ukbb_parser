@@ -1,4 +1,5 @@
 .DS_Store
+.Rhistory
 scripts/config.py
 scripts/category_tree.py
 *pyc

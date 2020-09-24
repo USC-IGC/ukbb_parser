@@ -88,11 +88,13 @@ Optional Inputs:
 * `--img_visit_only`         Use this flag to only keep data acquired during the
                            imaging visit.
 * `--no_convert`             Use this flag if you don't want the demographic conversions run
+* `--long_names`             Use this flag to replace datafield numbers in column names with datafield titles
 * `--rcols`                  Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")
 * `--fillna TEXT`            Use this flag to fill blank cells with the flag
                            input, e.g., NA
-* `--combine Spreadsheet`    Spreadsheets to combine to output; Please make sure
-                           all spreadsheets have an identifier column 'eid'
+* `--chunksize INTEGER`     Use this flag to set the processing chunk size,
+                            Default:1000
+
 
 The incon/excon/insr/exsr/incat/excat/inhdr/exhdr/combine flags can all be used multiple times, e.g., `--incat 110 --incat 134`.
 
@@ -132,18 +134,20 @@ Also note that this inventory binarization only produces one column per job code
 ##### Flags and Usage
 
 Inputs:
-* `--incsv CSV`      File path of downloaded UK Biobank CSV
-* `--outcsv CSV`     File path to write out to
-* `--rcols`          Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")
-* `--datatype type`  Data to inventory; Valid choices include: icd10,
-                    self_report, careers
-* `--level level`    Level to inventory by; N.B. Please input 0 for the Top
-                    level or S for selectable codes
-* `--code code`      Codes to inventory; Use the option 'all' to inventory all
-                    categories in the given level; Please use level-appropriate
-                    codes; Ranges are allowed for selectable codes
-* `--all_codes`      (optional) Use this flag if you'd like to additionally obtain
-                   individual inventories of all codes
+* `--incsv CSV`            File path of downloaded UK Biobank CSV
+* `--outcsv CSV`           File path to write out to
+* `--rcols`                Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")
+* `--datatype type`        Data to inventory; Valid choices include: icd10,
+                          self_report, careers
+* `--level level`          Level to inventory by; N.B. Please input 0 for the Top
+                          level or S for selectable codes
+* `--code code`            Codes to inventory; Use the option 'all' to inventory all
+                          categories in the given level; Please use level-appropriate
+                          codes; Ranges are allowed for selectable codes
+* `--all_codes`            (optional) Use this flag if you'd like to additionally obtain
+                         individual inventories of all codes
+* `--chunksize INTEGER`     Use this flag to set the processing chunk size,
+                            Default:1000
 
 Example usage:
 

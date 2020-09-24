@@ -3,7 +3,7 @@ import ukbb_parser.scripts.demo_conversion as dc
 import ukbb_parser.scripts.condition_filtering as cf
 import ukbb_parser.scripts.create_header_key as chk
 import ukbb_parser.scripts.level_processing as lp
-from ukbb_parser.scripts.utils import read_spreadsheet, find_icd10_ix_range, find_icd10_letter_ixs, parse_cat_tree
+from ukbb_parser.scripts.utils import read_spreadsheet, find_icd10_ix_range, find_icd10_letter_ixs, parse_cat_tree, create_long_bois
 import pkg_resources
 import pandas as pd
 import numpy as np
@@ -156,10 +156,12 @@ parser_desc = """
 @click.option("--img_subs_only", is_flag=True, help="Use this flag to only keep data of participants with an imaging visit.")
 @click.option("--img_visit_only", is_flag=True, help="Use this flag to only keep data acquired during the imaging visit.")
 @click.option("--no_convert", is_flag=True, help="Use this flag if you don't want the demographic conversions run")
+@click.option("--long_names", is_flag=True, help='Use this flag to replace datafield numbers in column names with datafield titles')
 @click.option("--rcols", is_flag=True, help='Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")')
 @click.option("--fillna",  help="Use this flag to fill blank cells with the flag input, e.g., NA")
-@click.option("--combine", metavar="Spreadsheet", multiple=True, help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'; These can be in csv, xls(x) or table formats""")
-def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, img_subs_only, img_visit_only, no_convert, rcols, fillna, combine):
+@click.option("--chunksize", help="Use this flag to set the processing chunk size, Default:1000", default=1000)
+# @click.option("--combine", metavar="Spreadsheet", multiple=True, help="""Spreadsheets to combine to output; Please make sure all spreadsheets have an identifier column 'eid'; These can be in csv, xls(x) or table formats""")
+def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subjects, dropouts, img_subs_only, img_visit_only, no_convert, long_names, rcols, fillna, chunksize):
     '''
     Filter the input CSV file with the given input parameters.
 
@@ -170,25 +172,6 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     ### Setting Up ###
     ##################
 
-    arglist = ' '.join(sys.argv)
-    pd.set_option("display.max_colwidth", 500)
-    
-    ### Functions... We like functions
-
-    time_between_online_cognitive_test_and_imaging = {'20134-0.0': 'time_between_pairs_matching_imaging',
-                                                    '20135-0.0': 'time_between_FI_imaging',
-                                                    '20136-0.0': 'time_between_Trails_imaging',
-                                                    '20137-0.0': 'time_between_SDMT_imaging',
-                                                    '20138-0.0': 'time_between_digit_span_imaging'}
-
-    def delta_t_days(datafield, dataframe):
-        imaging_date = pd.Series([datetime.datetime.strptime(v, '%Y-%m-%d') if isinstance(v, str) else np.nan for v in dataframe['53-2.0']])
-        online_test_date = pd.Series([datetime.datetime.strptime(v.split('T')[0], '%Y-%m-%d') if isinstance(v, str) else np.nan for v in dataframe[datafield]])
-        time_between = online_test_date - imaging_date
-        return np.abs(time_between.dt.days)
-
-    ### Reading in the Data Source
-
     if not os.path.exists(incsv):
         click.echo("{} does not exist. Please double check the provided file path".format(incsv))
         sys.exit(1)
@@ -197,23 +180,49 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         click.echo("An out prefix is required. Please provide one and run again.")
         sys.exit(1)
 
-    click.echo("Loading "+incsv)
-    df = read_spreadsheet(incsv, 'csv')
+    if os.path.exists(out+'.csv'):
+        click.echo("The output CSV already exists.\nIf %s is the intended name, please delete it and run again." %out+'.csv')
+        sys.exit(1)
 
-    ### Delete empty columns
+    arglist = ' '.join(sys.argv)
+    pd.set_option("display.max_colwidth", 500)
+    
+    ### Functions... We like functions
 
-    df.dropna(axis=1, how="all", inplace=True)
+    time_between_online_cognitive_test_and_imaging = {
+            '20134-0.0': 'time_between_pairs_matching_imaging',
+            '20135-0.0': 'time_between_FI_imaging',
+            '20136-0.0': 'time_between_Trails_imaging',
+            '20137-0.0': 'time_between_SDMT_imaging',
+            '20138-0.0': 'time_between_digit_span_imaging'
+            }
+
+    def delta_t_days(datafield, dataframe):
+        imaging_date = pd.Series([datetime.datetime.strptime(v, '%Y-%m-%d') if isinstance(v, str) else np.nan for v in dataframe['53-2.0']])
+        online_test_date = pd.Series([datetime.datetime.strptime(v.split('T')[0], '%Y-%m-%d') if isinstance(v, str) else np.nan for v in dataframe[datafield]])
+        time_between = online_test_date - imaging_date
+        return np.abs(time_between.dt.days)
+
+    ####################################
+    ### Filter data columns, Part I  ###
+    ####################################
+
+    all_columns = pd.read_csv(incsv, encoding='ISO-8859-1', nrows=2)
+    all_columns = list(all_columns.columns)
+    defcols = ["eid"]
+    covariate_columns = ['eid']
+
+    # R cols
+
     if rcols:
         revert_names = {}
-        for c in df.columns:
+        for c in all_columns:
             if (len(c.split(".")) == 3) and c.startswith("X"):
                 dfr = c.split(".")[0][1:]
                 instr = c.split(".")[1]
                 entryr = c.split(".")[2]
                 revert_names[c] = "{}-{}.{}".format(dfr, instr, entryr)
-        df.rename(columns=revert_names, inplace=True)
-
-    orig_columns = df.columns
+        all_columns = ['eid'] + list(revert_names.values())
 
     ### Loading in Mapped Category and Datafields Tree
 
@@ -227,7 +236,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     if len(inhdr) > 0:
         if inhdr[0] == "all":
-            to_include = [oc.split("-")[0] for oc in orig_columns]
+            to_include = [oc.split("-")[0] for oc in all_columns]
         else:
             to_include = []
             for ih in inhdr:
@@ -267,69 +276,93 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     to_include = list(set(sorted(to_include)))
     to_include = [hdr for hdr in to_include if hdr not in to_exclude]
 
-    #######################
-    ### Processing Time ###
-    #######################
-    
-    ### Filter subjects by IDs
+    ### Check if Imaging Time Point Data Only is Requested
 
-    sublist = []
-    if len(subjects) > 0:
-        click.echo("Obtaining subset of provided subject IDs")
-        for sub in subjects:
-            try:
-                with open(sub, 'r') as f:
-                    lines = [l.strip() for l in f.readlines()]
-                sublist += [int(l) for l in lines]
-                del lines
-            except:
-                sublist.append(int(sub))
-    # if len(cohort) > 0:
-    #     for coh in cohort:
-    #         click.echo("Obtaining data of individuals listed in " + coh)
-    #         with open(coh, "r") as f:
-    #             sublist += [l.strip() for l in f.readlines()]
+    if img_visit_only or long_names:
+        field_txt = pd.read_csv(pkg_resources.resource_filename(__name__, 'data/field.txt'), index_col='field_id', sep='\t')
 
-    sublist = [int(subjid) for subjid in sublist]
+    instance2s = []
+    if img_visit_only:
+        click.echo("Selecting data acquired at Imaging time point for those datafields using instance 2 codes")
+        instance2s = field_txt.loc[field_txt.instance_id == 2].index.tolist()
+        instance2s = [str(in2) for in2 in instance2s]
 
-    if len(sublist) > 0:
-        df = df[df.eid.isin(sublist)]
+    ### Default Covariates
 
-    if img_subs_only:
-        if "53-2.0" in orig_columns:
-            df = df[df["53-2.0"].notnull()]
-        else:
-            click.echo("Cannot select imaged subset of participants")
-            sys.exit(1)
+    # Sex
 
-    ### Remove study dropouts
+    if "31-0.0" in all_columns:
+        covariate_columns.append("31-0.0")
+        defcols.append("31-0.0")
+    if "22001-0.0" in all_columns:
+        defcols.append("22001-0.0")
+        covariate_columns.append("22001-0.0")
 
-    dropids = []
+    # Genetic Race
 
-    if len(dropouts):
-        for drop in dropouts:
-            click.echo("Removing data of individuals listed in {} who have withdrawn from the study".format(drop))
-            dropcsv = pd.read_csv(drop, header=None)
-            dropids += dropcsv[0].values.tolist()
+    if "22006-0.0" in all_columns:
+        defcols.append("22006-0.0")
+        covariate_columns.append("22006-0.0")
 
-        df = df[~df.eid.isin(dropids)]
+    # And More
 
-    ### Filter subjects by ICD10 conditions
+    mds_components = []
+    icd_columns = []
+    sr_columns = []
 
-    if (len(incon) > 0) or (len(excon) > 0):
-        click.echo("Filtering by ICD10 conditions")
+    for c in all_columns:
 
-    coding19 = pd.read_csv(pkg_resources.resource_filename(__name__, 'data/icd10_level_map.csv'), index_col="Coding")
-    selectable_icd10 = coding19.loc[coding19.Selectable == "Y"].index.tolist()
-    
-    main_icd_columns = [c for c in orig_columns if c.startswith("41202-")]
-    sec_icd_columns = [c for c in orig_columns if c.startswith("41204-")]
-    icd_columns = main_icd_columns + sec_icd_columns
+        # Other Demographics
+        if c.startswith("6138-") or c.startswith("21000-") or c.startswith("21003-"):
+            covariate_columns.append(c)
+            defcols.append(c)
+            continue
+
+        # Genetics 
+
+        if c.startswith("22009-") and (len(mds_components) < 11):
+            defcols.append(c)
+            mds_components.append(c)
+            continue
+
+        # ICD10 Conditions 
+
+        if c.startswith("41202-") or c.startswith("41204-") or c.startswith("41270-"):
+            icd_columns.append(c)
+            defcols.append(c)
+            continue
+
+        # Self-Report Conditions 
+
+        if c.startswith("20002-"):
+            sr_columns.append(c)
+            defcols.append(c)
+            continue
+
+        # DataField Filter
+
+        datafield = c.split("-")[0] 
+        if datafield in to_include:
+            # Time Point Filter
+            if img_visit_only and (datafield in instance2s):
+                if c.split("-")[1].split(".")[0] in ["2", "3"]:
+                    defcols.append(c)
+            else:
+                defcols.append(c)
+
+    #####################
+    ### Preprocessing ###
+    #####################
+
+    ### ICD10
 
     if (len(icd_columns) == 0) and ((len(incon) > 0) or (len(excon) > 0)):
         click.echo("ICD 10 columns are not available for diagnosis condition filtering. Please check input spreadsheet before trying again.")
         sys.exit(1)
 
+    coding19 = pd.read_csv(pkg_resources.resource_filename(__name__, 'data/icd10_level_map.csv'), index_col="Coding")
+    selectable_icd10 = coding19.loc[coding19.Selectable == "Y"].index.tolist()
+    
     include_icd = []
 
     if len(incon) > 0:
@@ -359,7 +392,6 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     ### Filter subjects by Self-Report conditions
 
-    sr_columns = [c for c in orig_columns if c.startswith("20002-")]
     if (len(sr_columns) == 0) and ((len(insr) > 0) or (len(exsr) > 0)):
         click.echo("Self-report columns are not available for filtering. Please check input spreadsheet before trying again.")
         sys.exit(1)
@@ -385,18 +417,53 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             else:
                 exclude_srs.append(int(sr))
 
-    if (len(insr) > 0) or (len(incon) > 0):
-        found_icd_includes = df[icd_columns].isin(include_icd).any(axis=1)
-        found_sr_includes = df[sr_columns].isin(include_srs).any(axis=1)
-        found_includes = np.logical_or(found_icd_includes, found_sr_includes)
-        df = df.loc[found_includes]
+    ### Filter subjects by IDs
 
-    found_icd_excludes = df[icd_columns].isin(exclude_icd).any(axis=1)
-    found_sr_excludes = df[sr_columns].isin(exclude_srs).any(axis=1)
-    found_excludes = np.logical_or(found_icd_excludes, found_sr_excludes)
-    df = df.loc[~found_excludes]
+    sublist = []
+    if len(subjects) > 0:
+        click.echo("Obtaining subset of provided subject IDs")
+        for sub in subjects:
+            try:
+                with open(sub, 'r') as f:
+                    lines = [l.strip() for l in f.readlines()]
+                sublist += [int(l) for l in lines]
+                del lines
+            except (FileNotFoundError, UnicodeDecodeError) as e:
+                sublist.append(int(sub))
+            except ValueError:
+                print("Encountered invalid --subjects entry. Please check before trying again.")
+                sys.exit(1)
+    
+    sublist = [int(subjid) for subjid in sublist]
 
-    ### Control Time
+    ### Remove study dropouts
+
+    dropids = []
+
+    if len(dropouts) > 0:
+        for drop in dropouts:
+            try:
+                with open(drop, 'r') as f:
+                    lines = [l.strip() for l in f.readlines()]
+                dropids += [int(l) for l in lines]
+                del lines
+            except (FileNotFoundError, UnicodeDecodeError) as e:
+                dropids.append(int(drop))
+            except ValueError:
+                print("Encountered invalid --dropouts entry. Please check before trying again.")
+                sys.exit(1)
+
+    ###############
+    ### COHORTS ###
+    ###############
+
+    ### Cohort Flag
+
+    # if len(cohort) > 0:
+    #     for coh in cohort:
+    #         click.echo("Obtaining data of individuals listed in " + coh)
+    #         with open(coh, "r") as f:
+    #             sublist += [l.strip() for l in f.readlines()]
 
     cohorts = {"NP_controls_1": {"icd10": ['A8', 'B20', 'B21', 'B22', 'B23', 'B24', 'B65-B83',
                                            'C', 'F','G','I6','Q0','S04','S06','S07','S08','S09',
@@ -420,153 +487,186 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     ### TODO: add Healthy cohort
 
-    if (len(icd_columns) > 0) and (len(sr_columns) > 0):
-        click.echo("Indicating Control Cohorts")
-        for k, v in cohorts.items():
-            icd10_excludes = []
-            for icd in v['icd10']:
-                if icd in selectable_icd10:
-                    icd10_excludes.append(icd)
-                elif "-" in icd:
-                    excon_ix_0 = icd.split("-")[0]
-                    excon_ix_1 = icd.split("-")[1]
-                    start_loc, end_loc = find_icd10_ix_range(coding19, excon_ix_0, excon_ix_1)
-                    icd10_excludes += coding19.loc[start_loc : end_loc].index.tolist()
-                else:
-                    icd10_excludes += find_icd10_letter_ixs(coding19, icd)
 
-            icd10_series = df[icd_columns].isin(icd10_excludes).any(axis=1)
-            sr_series = np.zeros_like(icd10_series)
-            if 'sr' in v.keys():
-                sr_series = df[sr_columns].isin(v['sr']).any(axis=1)
-            df.loc[~np.logical_or(icd10_series, sr_series), k] = 1
-    else:
-        click.echo("Warning: Cannot indicate control subjects. ICD-10 or self-report data fields are missing")
+    #######################
+    ### Processing Time ###
+    #######################
+    
+    ### Reading in the Data Source
 
-    ### Intermission
+    click.echo("Loading "+incsv)
+    # df = read_spreadsheet(incsv, 'csv')
 
-    # Sex
+    ### Delete empty columns
 
-    defcols = ["eid"]
-    if "31-0.0" in orig_columns:
-        defcols.append("31-0.0")
-    if "22001-0.0" in orig_columns:
-        defcols.append("22001-0.0")
+    # df.dropna(axis=1, how="all", inplace=True)
 
-    # Other Demographics
+    for i, df in enumerate(pd.read_csv(incsv, encoding='ISO-8859-1', chunksize=chunksize, usecols=defcols)):
 
-    if no_convert:
-        for c in df.columns:
-            if c.startswith("6138-") or c.startswith("21000-") or c.startswith("21003-"):
-                defcols.append(c)
-    else:
-        click.echo("Adding Converted Demographic Information")
+        if rcols:
+            df.rename(columns=revert_names, inplace=True)
 
-        ### Calculate Float Ages
+        ### Filter subjects by IDs
+        if len(sublist) > 0:
+            df = df[df.eid.isin(sublist)]
 
-        click.echo(" * float ages")
-        df, convert_status = dc.calculate_float_ages(df)
-        if convert_status is True:
-            age_cols = ["Age1stVisit", "AgeRepVisit", "AgeAtScan", "AgeAt2ndScan"]
+        if img_subs_only:
+            if "53-2.0" in df.columns:
+                df = df[df["53-2.0"].notnull()]
+            else:
+                click.echo("Cannot select imaged subset of participants")
+                sys.exit(1)
+
+        ### Remove study dropouts
+
+        if len(dropids) > 0:
+            click.echo("Removing data of individuals listed in {} who have withdrawn from the study".format(drop))
+            df = df[~df.eid.isin(dropids)]
+
+        ### Filter subjects by ICD10 conditions
+
+        if (len(incon) > 0) or (len(excon) > 0):
+            click.echo("Filtering by ICD10 conditions")
+
+
+        if (len(insr) > 0) or (len(incon) > 0):
+            found_icd_includes = df[icd_columns].isin(include_icd).any(axis=1)
+            found_sr_includes = df[sr_columns].isin(include_srs).any(axis=1)
+            found_includes = np.logical_or(found_icd_includes, found_sr_includes)
+            df = df.loc[found_includes]
+
+        found_icd_excludes = df[icd_columns].isin(exclude_icd).any(axis=1)
+        found_sr_excludes = df[sr_columns].isin(exclude_srs).any(axis=1)
+        found_excludes = np.logical_or(found_icd_excludes, found_sr_excludes)
+        df = df.loc[~found_excludes]
+
+        ### Control Time
+
+        if (len(icd_columns) > 0) and (len(sr_columns) > 0):
+            click.echo("Indicating Control Cohorts")
+            for k, v in cohorts.items():
+                icd10_excludes = []
+                for icd in v['icd10']:
+                    if icd in selectable_icd10:
+                        icd10_excludes.append(icd)
+                    elif "-" in icd:
+                        excon_ix_0 = icd.split("-")[0]
+                        excon_ix_1 = icd.split("-")[1]
+                        start_loc, end_loc = find_icd10_ix_range(coding19, excon_ix_0, excon_ix_1)
+                        icd10_excludes += coding19.loc[start_loc : end_loc].index.tolist()
+                    else:
+                        icd10_excludes += find_icd10_letter_ixs(coding19, icd)
+
+                icd10_series = df[icd_columns].isin(icd10_excludes).any(axis=1)
+                sr_series = np.zeros_like(icd10_series)
+                if 'sr' in v.keys():
+                    sr_series = df[sr_columns].isin(v['sr']).any(axis=1)
+                df.loc[~np.logical_or(icd10_series, sr_series), k] = 1
         else:
-            age_cols = ["21003-0.0", "21003-1.0", "21003-2.0"]
-        for c in age_cols:
-            if c in df.columns:
-                defcols.append(c)
+            click.echo("Warning: Cannot indicate control subjects. ICD-10 or self-report data fields are missing")
 
-        ### Create Race Column
-        ### TODO: create separate columns for race and ethnicity?
+        ### Default Covariates
 
-        click.echo(" * ethnicity")
-        df, convert_status = dc.add_ethnicity_columns(df)
-        if convert_status is True:
-            defcols.append("Race")
+        if no_convert:
+            for c in df.columns:
+                if c.startswith("6138-") or c.startswith("21000-") or c.startswith("21003-"):
+                    defcols.append(c)
+        else:
+            click.echo("Adding Converted Demographic Information")
 
-        ### Create Eductation Columns
+            ### Calculate Float Ages
 
-        click.echo(" * education")
-        df, convert_status = dc.add_education_columns(df)
-        if convert_status is True:
-            defcols += ["ISCED", "YearsOfEducation"] 
+            click.echo(" * float ages")
+            df, convert_status = dc.calculate_float_ages(df)
+            if convert_status is True:
+                age_cols = ["Age1stVisit", "AgeRepVisit", "AgeAtScan", "AgeAt2ndScan"]
+            else:
+                age_cols = ["21003-0.0", "21003-1.0", "21003-2.0", "21003-3.0"]
+            for c in age_cols:
+                if c in df.columns:
+                    defcols.append(c)
 
-    # Genetics 
+            ### Create Race Column
+            ### TODO: create separate columns for race and ethnicity?
 
-    if "22006-0.0" in orig_columns:
-        defcols.append("22006-0.0")
+            click.echo(" * ethnicity")
+            df, convert_status = dc.add_ethnicity_columns(df)
+            if convert_status is True:
+                defcols.append("Race")
 
-    genetic_components = [c for c in orig_columns if c.startswith("22009-")]
-    if len(genetic_components) > 10:
-        defcols += genetic_components[:10]
+            ### Create Eductation Columns
 
-    ### Filter data columns
+            click.echo(" * education")
+            df, convert_status = dc.add_education_columns(df)
+            if convert_status is True:
+                defcols += ["ISCED", "YearsOfEducation"] 
 
-    click.echo("Filtering Data Columns")
+        ####################################
+        ### Filter data columns, Part II ###
+        ####################################
 
-    includes = [c for c in orig_columns if c.split("-")[0] in to_include]
+        click.echo("Filtering Data Columns")
 
-    for datafield in ["21003-0.0", "21003-1.0", "21003-2.0", "31-0.0", "22001-0.0", "22006-0.0"] + genetic_components[:10]:
-        if (datafield in includes) and (datafield in defcols):
-            includes.remove(datafield)
+        includes = [c for c in defcols if c.split("-")[0] in to_include]
+        for datafield in ["21003-0.0", "21003-1.0", "21003-2.0", "21003-3.0", "31-0.0", "22001-0.0", "22006-0.0"] + mds_components:
+            if (datafield in includes) and (datafield in covariate_columns):
+                includes.remove(datafield)
 
-    defcols += sorted(list(cohorts.keys()))
-    includes = defcols + includes
-    df = df[includes]
-    df.dropna(axis=1, how="all", inplace=True)
+        covariate_columns += sorted(list(cohorts.keys()))
+        includes = [c for c in df.columns if c in covariate_columns + includes]
+        df = df[includes]
+        df.dropna(axis=1, how="all", inplace=True)
 
-    if "53-2.0" in df.columns:
-        for c in includes:
-            if c in time_between_online_cognitive_test_and_imaging.keys():
-                df[time_between_online_cognitive_test_and_imaging[c]] = delta_t_days(c, df) 
+        if "53-2.0" in df.columns:
+            for k in time_between_online_cognitive_test_and_imaging.keys():
+                if k in includes:
+                    df[time_between_online_cognitive_test_and_imaging[c]] = delta_t_days(c, df) 
 
-    ########################
-    ### Finishing Up Now ###
-    ########################
+        ########################
+        ### Finishing Up Now ###
+        ########################
 
-    ### Check if Imaging Time Point Data Only is Requested
+        ### Long Bois Time
 
-    if img_visit_only:
-        click.echo("Selecting data acquired at Imaging time point for those datafields using instance 2 codes")
-        field_txt = pd.read_csv(pkg_resources.resource_filename(__name__, 'data/field.txt'), sep='\t')
-        instance2s = field_txt.loc[field_txt.instance_id == 2, "field_id"].tolist()
-        instance2s = [str(in2) for in2 in instance2s]
-        drop_non_img_tps = []
-        for col in df.columns:
-            if (col.split("-")[0] in instance2s):
-                if len(col.split("-")) > 1:
-                    if col.split("-")[1].split(".")[0] not in ["2", "3"]:
-                        drop_non_img_tps.append(col)
-        df = df.drop(drop_non_img_tps, axis=1)
+        if long_names:
+            name_key = create_long_bois(df.columns, field_txt)
+            df.rename(columns=name_key, inplace=True)
 
-    ### Create Header Key
+        if fillna is not None:
+            df.fillna(fillna, inplace=True)
+        
+        if os.path.exists(out+".csv"):
+            df.to_csv(out+".csv", mode="a", header=False, index=False)
+        else:
+            df.to_csv(out+".csv", index=False)
 
-    click.echo("Creating HTML header key")
-    chk.create_html_key(df, arglist, out)
+            ### Create Header Key
+
+            click.echo("Creating HTML header key")
+            chk.create_html_key(df, arglist, out)
 
     ### Add Additional Spreadsheets
 
-    if len(combine) > 0:
-        for com in combine:
-            click.echo('Adding {} data to output spreadsheet'.format(com))
-            add_df = read_spreadsheet(com, 'unknown')
-            if "eid" not in add_df.columns:
-                click.echo("eid was not found in {}. Skipping for now.".format(com))
-                continue
-            else:
-                if not pd.api.types.is_numeric_dtype(add_df.eid):
-                    valid_eids = [eid for eid in add_df.eid if eid.isdigit()]
-                    add_df = add_df[add_df.eid.isin(valid_eids)]
-                    add_df.eid = add_df.eid.astype(int)
-                df = df.merge(add_df, on='eid', how='left', suffixes=("", "_"+com[:5]))
+    # if len(combine) > 0:
+    #     for com in combine:
+    #         click.echo('Adding {} data to output spreadsheet'.format(com))
+    #         add_df = read_spreadsheet(com, 'unknown')
+    #         if "eid" not in add_df.columns:
+    #             click.echo("eid was not found in {}. Skipping for now.".format(com))
+    #             continue
+    #         else:
+    #             if not pd.api.types.is_numeric_dtype(add_df.eid):
+    #                 valid_eids = [eid for eid in add_df.eid if eid.isdigit()]
+    #                 add_df = add_df[add_df.eid.isin(valid_eids)]
+    #                 add_df.eid = add_df.eid.astype(int)
+    #             df = df.merge(add_df, on='eid', how='left', suffixes=("", "_"+com[:5]))
 
-    if fillna is not None:
-        df.fillna(fillna, inplace=True)
-    
-    df.to_csv(out+".csv", chunksize=15000, index=False)
     click.echo("Done!")
 
 @ukbb_parser.command()
 @click.option("--incsv", metavar="CSV", help="""File path of downloaded UK Biobank CSV""")
 @click.option("--outcsv", metavar="CSV", help="""File path to write out to""")
+@click.option("--subjects", multiple=True, metavar="SubID", help="""A list of participant IDs to include""")
 @click.option("--rcols", is_flag=True, help='Use this flag if spreadsheet has columns names under R convention (e.g., "X31.0.0")')
 @click.option("--datatype", metavar="type", 
         type=click.Choice(['icd10', 'self_report', 'careers']),
@@ -574,7 +674,8 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 @click.option("--level", multiple=True, metavar="level", help="""Level to inventory by; N.B. Please input 0 for the Top level or S for selectable codes""")
 @click.option("--code", multiple=True, metavar="code", help="""Codes to inventory; Use the option 'all' to inventory all categories in the given level; Please use level-appropriate codes; Ranges are allowed""")
 @click.option("--all_codes", is_flag=True, help="""(optional) Use this flag if you'd like to obtain additionally obtain individual inventories of all codes""")
-def inventory(incsv, outcsv, rcols, datatype, code, level, all_codes):
+@click.option("--chunksize", help="Use this flag to set the processing chunk size, Default:1000", default=1000)
+def inventory(incsv, outcsv, subjects, rcols, datatype, code, level, all_codes, chunksize):
     '''
     Create binary columns indicating the presence of specified data.
 
@@ -583,84 +684,109 @@ def inventory(incsv, outcsv, rcols, datatype, code, level, all_codes):
 
     # Check Inputs First
 
+    if not os.path.exists(incsv):
+        click.echo("{} does not exist. Please double check the provided file path".format(incsv))
+        sys.exit(1)
+
+    if os.path.exists(outcsv):
+        click.echo("The output CSV already exists.\nIf %s is the intended name, please delete it and run again." %outcsv)
+        sys.exit(1)
+
     if len(level) != len(code):
         click.echo("Number of --level and --code flags used should match. Please double check your inputs before trying again.")
         sys.exit(1)
 
     # Load Datafields from Column Headers
-    with open(incsv, "r") as f:
-        first_line = f.readline()
-    columns = first_line.strip().split(",")
+    all_columns = pd.read_csv(incsv, encoding='ISO-8859-1', nrows=2)
+    all_columns = list(all_columns.columns)
+
+    # R columns
     if rcols:
-        datafields = []
         revert_names = {}
-        for c in columns:
-            if (len(c.split(".")) == 3) and (c.startswith("X") or c.startswith('"X')):
-                if c.startswith('"'):
-                    c = c[1:-1]
+        for c in all_columns:
+            if (len(c.split(".")) == 3) and c.startswith("X"):
                 dfr = c.split(".")[0][1:]
-                if dfr not in datafields:
-                    datafields.append(dfr)
                 instr = c.split(".")[1]
                 entryr = c.split(".")[2]
                 revert_names[c] = "{}-{}.{}".format(dfr, instr, entryr)
-    else:
-        datafields = set([col.split("-")[0] for col in columns])
-        datafields = list(datafields)
-    if datafields[0][0] == '"': 
-        datafields = [df[1:] for df in datafields]
+        all_columns = ['eid']+list(revert_names.values())
 
     # Isolate the Necessary DataFields
-    if datatype == 'icd10':
-        dfs = ['41202', '41204']
-    elif datatype == 'self_report':
-        dfs = ['20002']
-    elif datatype == 'careers':
-        dfs = ['132', '22617']
-    else:
+
+    necessary = {
+            'icd10': ['41202', '41204', '41270'],
+            'self_report': ['20002'],
+            'careers': ['132', '22617']
+            }
+
+    # The following shouldn't be necessary but just in case
+    if datatype not in list(necessary.keys()):
         click.echo("--datatype was not specified correctly. Please check inputs and try again.")
         sys.exit(1)
 
     # Check to make sure necessary datafields are present
     click.echo("Currently checking for the required datafields")
-    should_exit = False
     missing_df = 0
-    for d in dfs:
-        if d not in datafields:
-            if datatype == "careers":
-                click.echo("Caution: Datafield {} is not included in your data.".format(d))
-                missing_df += 1
-                if missing_df == 2:
-                    click.echo("The relevant datafields have not been found. Please double check your input spreadsheet for the datafields before trying again.")
-                    should_exit = True
-            else:
-                click.echo("Datafield {} is required for this to work. Please double check your input spreadsheet for the datafield before trying again.".format(d))
-                should_exit = True
-                break
-    if should_exit:
+    defcols=['eid']
+    datafields = []
+    for c in all_columns:
+        datafield = c.split("-")[0]
+        if datafield in necessary[datatype]:
+            if datafield not in datafields:
+                datafields.append(datafield)
+            defcols.append(c)
+
+    if len(datafields) == 0:
+        click.echo("The relevant datafield(s) (%s) have not been found. Please double check your input spreadsheet for the datafields before trying again." % ", ".join(necessary[datatype]))
         sys.exit(1)
+    elif len(datafields) < len(necessary[datatype]):
+        click.echo("Caution: Some datafields (%s) are not included in the input spreadsheet. Proceeding with the other(s)" % ", ".join([f for f in necessary[datatype] if f not in datafields]))
 
     # Load in relevant level map
     level_map = pkg_resources.resource_filename(__name__, 'data/{}_level_map.csv'.format(datatype))
     
-    # Processing
-    df = read_spreadsheet(incsv)
-    if rcols:
-        df.rename(columns=revert_names, inplace=True)
+    ### Filter subjects by IDs
 
-    df.dropna(axis=1, how="all", inplace=True)
-    original_columns = df.columns.tolist()
-    reldfs = []
-    for c in df.columns:
-        if c.split("-")[0] in dfs:
-            reldfs.append(c)
-    for i, l in enumerate(level):
-        click.echo("Currently conducting an entry inventory of level {} / code {}".format(l, code[i]))
-        df = lp.level_processing(df, datatype, reldfs, level_map, code[i], l, all_codes)
-    df.dropna(axis=1, how="all", inplace=True)
-    new_columns = [col for col in df.columns if col not in original_columns]
-    df = df[original_columns + new_columns]
-    df.to_csv(outcsv, chunksize=15000, index=False)
+    sublist = []
+    if len(subjects) > 0:
+        click.echo("Obtaining subset of provided subject IDs")
+        for sub in subjects:
+            try:
+                with open(sub, 'r') as f:
+                    lines = [l.strip() for l in f.readlines()]
+                sublist += [int(l) for l in lines]
+                del lines
+            except (FileNotFoundError, UnicodeDecodeError) as e:
+                sublist.append(int(sub))
+            except ValueError:
+                print("Encountered invalid --subjects entry. Please double check before trying again.")
+                sys.exit(1)
+
+    # Processing
+
+    # df = read_spreadsheet(incsv)
+    reldfs = list(defcols)
+    reldfs.remove('eid')
+    for i, df in enumerate(pd.read_csv(incsv, encoding='ISO-8859-1', chunksize=chunksize, usecols=defcols)):
+
+        # Filter Subjects
+        if len(sublist) > 0:
+            df = df[df.eid.isin(sublist)]
+
+        if rcols:
+            df.rename(columns=revert_names, inplace=True)
+
+        for i, l in enumerate(level):
+            click.echo("Currently conducting an entry inventory of level {} / code {}".format(l, code[i]))
+            df = lp.level_processing(df, datatype, reldfs, level_map, code[i], l, all_codes)
+        new_columns = [col for col in df.columns if col not in reldfs]
+        df = df[new_columns]
+
+        if os.path.exists(outcsv):
+            df.to_csv(outcsv, mode="a", header=False, index=False)
+        else:
+            df.to_csv(outcsv, index=False)
+
     click.echo("Done!")
 
 if __name__ == "__main__":

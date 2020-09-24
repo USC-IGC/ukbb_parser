@@ -30,7 +30,7 @@ def level_processing(dataFrame, datatype, datafields, level_map, code, level, su
         selectable = level_map_df.loc[level_map_df[selectable_column].isin(["Y", "Yes"])]
         codes_to_inventory = selectable.index.tolist()
         for s in codes_to_inventory:
-            dataFrame.loc[dataFrame[datafields].isin([s]).any(axis=1), col_pref+str(s).replace(" ", "_")] = 1   
+            dataFrame[col_pref+str(s).replace(" ", "_")] = dataFrame[datafields].isin([s]).any(axis=1).astype(int)
         return dataFrame
     else:
         codes_dict = {}
@@ -40,10 +40,10 @@ def level_processing(dataFrame, datatype, datafields, level_map, code, level, su
                                "leaves": []}
         inventory_codes_dict = get_sublevel_data(codes_dict, level_map_df, parent_column, node_column, selectable_column, level)
         for k,v in inventory_codes_dict.items():
-            dataFrame.loc[dataFrame[datafields].isin(v['leaves']).any(axis=1), col_pref+str(k).replace(" ", "_")] = 1   
+            dataFrame[col_pref+str(k).replace(" ", "_")] = dataFrame[datafields].isin(v['leaves']).any(axis=1).astype(int)
             if sublevels == True:
                 for l in v['leaves']:
-                    dataFrame.loc[dataFrame[datafields].isin([l]).any(axis=1), col_pref+str(l).replace(" ", "_")] = 1   
+                    dataFrame[col_pref+str(l).replace(" ", "_")] = dataFrame[datafields].isin([l]).any(axis=1).astype(int)
         return dataFrame
 
 def get_sublevel_data(codes_dict, level_map, parent_column, node_column, selectable_column, level):

@@ -104,3 +104,17 @@ def parse_cat_tree(category, cattree):
         inner(cattree[category])
 
     return ns.results 
+
+def create_long_bois(column_names, ref_df):
+
+    name_key = {}
+
+    for cn in column_names:
+        try:
+            datafield = int(cn.split("-")[0])
+            if datafield in ref_df.index.tolist():
+                name_key[cn] = ref_df.loc[datafield, "title"].replace(" ", "_") + "-" + cn.split("-")[1]
+        except ValueError:
+            pass
+        
+    return name_key
