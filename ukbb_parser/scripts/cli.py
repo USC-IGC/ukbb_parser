@@ -314,13 +314,12 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
         # Other Demographics
         if c.startswith("6138-") or c.startswith("21000-") or c.startswith("21003-"):
-            covariate_columns.append(c)
             defcols.append(c)
             continue
 
         # Genetics 
 
-        if c.startswith("22009-") and (len(mds_components) < 11):
+        if c.startswith("22009-") and (len(mds_components) < 10):
             defcols.append(c)
             mds_components.append(c)
             continue
@@ -570,7 +569,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         if no_convert:
             for c in df.columns:
                 if c.startswith("6138-") or c.startswith("21000-") or c.startswith("21003-"):
-                    defcols.append(c)
+                    covariate_columns.append(c)
         else:
             click.echo("Adding Converted Demographic Information")
 
@@ -584,7 +583,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
                 age_cols = ["21003-0.0", "21003-1.0", "21003-2.0", "21003-3.0"]
             for c in age_cols:
                 if c in df.columns:
-                    defcols.append(c)
+                    covariate_columns.append(c)
 
             ### Create Race Column
             ### TODO: create separate columns for race and ethnicity?
@@ -592,14 +591,14 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             click.echo(" * ethnicity")
             df, convert_status = dc.add_ethnicity_columns(df)
             if convert_status is True:
-                defcols.append("Race")
+                covariate_columns.append("Race")
 
             ### Create Eductation Columns
 
             click.echo(" * education")
             df, convert_status = dc.add_education_columns(df)
             if convert_status is True:
-                defcols += ["ISCED", "YearsOfEducation"] 
+                covariate_columns += ["ISCED", "YearsOfEducation"] 
 
         ####################################
         ### Filter data columns, Part II ###
@@ -612,6 +611,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             if (datafield in includes) and (datafield in covariate_columns):
                 includes.remove(datafield)
 
+        covariate_columns += mds_components
         covariate_columns += sorted(list(cohorts.keys()))
         includes = [c for c in df.columns if c in covariate_columns + includes]
         df = df[includes]
