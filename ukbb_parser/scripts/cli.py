@@ -615,7 +615,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         covariate_columns += sorted(list(cohorts.keys()))
         includes = [c for c in df.columns if c in covariate_columns + includes]
         df = df[includes]
-        df.dropna(axis=1, how="all", inplace=True)
+        # df.dropna(axis=1, how="all", inplace=True)
 
         if "53-2.0" in df.columns:
             for k in time_between_online_cognitive_test_and_imaging.keys():
