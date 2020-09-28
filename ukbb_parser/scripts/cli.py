@@ -508,7 +508,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         ### Filter subjects by IDs
         if len(sublist) > 0:
             df = df[df.eid.isin(sublist)]
-        if df.empty():
+        if df.empty:
             continue
 
         if img_subs_only:
@@ -517,7 +517,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
             else:
                 click.echo("Cannot select imaged subset of participants")
                 sys.exit(1)
-        if df.empty():
+        if df.empty:
             continue
 
         ### Remove study dropouts
@@ -525,7 +525,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         if len(dropids) > 0:
             click.echo("Removing data of individuals listed in {} who have withdrawn from the study".format(drop))
             df = df[~df.eid.isin(dropids)]
-        if df.empty():
+        if df.empty:
             continue
 
         ### Filter subjects by ICD10 conditions
@@ -544,7 +544,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         found_sr_excludes = df[sr_columns].isin(exclude_srs).any(axis=1)
         found_excludes = np.logical_or(found_icd_excludes, found_sr_excludes)
         df = df.loc[~found_excludes]
-        if df.empty():
+        if df.empty:
             continue
 
         ### Control Time
