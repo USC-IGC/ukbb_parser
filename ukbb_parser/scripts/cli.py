@@ -313,7 +313,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     for c in all_columns:
 
         # Other Demographics
-        if c.startswith("6138-") or c.startswith("21000-") or c.startswith("21003-"):
+        if c.split("-")[0] in ["6138", "21000", "21003", "34", "52", "53"]:
             defcols.append(c)
             continue
 
