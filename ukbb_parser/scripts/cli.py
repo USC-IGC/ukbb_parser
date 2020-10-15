@@ -42,8 +42,8 @@ def ukbb_parser():
 
 @ukbb_parser.command()
 @click.option("--incsv", metavar="CSV", help="""File path of downloaded UK Biobank CSV""")
-@click.option("--datafield", metavar="df", help="""Datafield to check for""")
-@click.option("--category", metavar="cat", help="""Category to check for""")
+@click.option("--datafield", multiple=True, metavar="df", help="""Datafield to check for""")
+@click.option("--category", multiple=True, metavar="cat", help="""Category to check for""")
 def check(incsv, datafield, category):
     '''
     Determine if the queried Datafield or Category is included in the downloaded CSV file.
@@ -57,30 +57,33 @@ def check(incsv, datafield, category):
     datafields = list(datafields)
     if datafields[0].startswith('"'):
         datafields = [df[1:] for df in datafields]
-    if datafield:
-        if str(datafield) in datafields:
-            click.echo("\nFound {} in CSV\n".format(datafield))
-        else:
-            click.echo("\nDid not find {} in CSV\n".format(datafield))
-    if category:
+    if len(datafield) > 0:
+        for dfield in datafield:
+            if str(dfield) in datafields:
+                click.echo("\nFound {} in CSV\n".format(dfield))
+            else:
+                click.echo("\nDid not find {} in CSV\n".format(dfield))
+    if len(category) > 0:
         with open(pkg_resources.resource_filename(__name__, 'data/mapped_category_tree.json'), 'r') as f:
             entire_cat_tree = json.load(f)
         cat_tree = entire_cat_tree["tree"]
-        cat_dfs = parse_cat_tree(category, cat_tree)
-        if len(cat_dfs) == 0:
-            click.echo("\n{} does not appear to be a valid or mapped category\n".format(category))
-            sys.exit(1)
-        else:
-            y = 0
-            missing = []
-            for datafield in cat_dfs:
-                if str(datafield) in datafields:
-                    y += 1
-                else:
-                    missing.append(datafield)
-            click.echo("\nFound {} data-fields.\nMissing {} data-fields\n".format(y, len(missing)))
-            if len(missing) > 0:
-                click.echo(",".join(missing)+'\n')
+        for cat in category:
+            cat_dfs = parse_cat_tree(cat, cat_tree)
+            if len(cat_dfs) == 0:
+                click.echo("\n{} does not appear to be a valid or mapped category\n".format(cat))
+                sys.exit(1)
+            else:
+                y = 0
+                missing = []
+                for dfield in cat_dfs:
+                    if str(dfield) in datafields:
+                        y += 1
+                    else:
+                        missing.append(dfield)
+                click.echo("\nFound {} data-fields.\nMissing {} data-fields\n".format(y, len(missing)))
+                if len(missing) > 0:
+                    click.echo(", ".join(missing)+'\n')
+
 
 @ukbb_parser.command()
 @click.option("--previous", metavar="CSV", help="""File path of previous downloaded UK Biobank CSV""")
@@ -181,7 +184,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         sys.exit(1)
 
     if os.path.exists(out+'.csv'):
-        click.echo("The output CSV already exists.\nIf %s is the intended name, please delete it and run again." %out+'.csv')
+        click.echo("The output CSV already exists.\nIf %s is the intended name, please delete it and run again." %(out+'.csv'))
         sys.exit(1)
 
     arglist = ' '.join(sys.argv)
@@ -200,8 +203,11 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     def delta_t_days(datafield, dataframe):
         imaging_date = pd.Series([datetime.datetime.strptime(v, '%Y-%m-%d') if isinstance(v, str) else np.nan for v in dataframe['53-2.0']])
         online_test_date = pd.Series([datetime.datetime.strptime(v.split('T')[0], '%Y-%m-%d') if isinstance(v, str) else np.nan for v in dataframe[datafield]])
-        time_between = online_test_date - imaging_date
-        return np.abs(time_between.dt.days)
+        try:
+            time_between = online_test_date - imaging_date
+            return np.abs(time_between.dt.days)
+        except TypeError:
+            return np.array([np.nan]*len(imaging_date))
 
     ####################################
     ### Filter data columns, Part I  ###
@@ -628,7 +634,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         if "53-2.0" in df.columns:
             for k in time_between_online_cognitive_test_and_imaging.keys():
                 if k in includes:
-                    df[time_between_online_cognitive_test_and_imaging[c]] = delta_t_days(c, df) 
+                    df[time_between_online_cognitive_test_and_imaging[k]] = np.array(delta_t_days(k, df))
 
         ########################
         ### Finishing Up Now ###

@@ -1,3 +1,12 @@
+### Release 0.7.0
+
+New Features: 
+* [Oct 15, 2020] Changed `ukbb_parser check` to accept multiples and combinations of `--datafield` and `--category` arguments
+
+Bug Fixes:
+
+* [Oct 15, 2020] Fixed time difference calculation for imaging and online cognitive test dates
+
 ### Release 0.6.0
 
 New Features: 
