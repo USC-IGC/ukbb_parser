@@ -110,6 +110,8 @@ As can be viewed on [the UK Biobank data showcase](http://biobank.ctsu.ox.ac.uk/
 
 Code inputs should be derived from the datafield-specific coding pages available on the UK Biobank showcase. If there are spaces in the codes, please use quotes around the entry (see example below). Multiple levels and codes can be used at once, but please ensure that levels and codes are provided in corresponding pairs.
 
+N.B. If `--long_names` has been used in the creation of an input spreadsheet for **inventory**, the code will not work.
+
 #### ICD-10 
 
 The coding tree for the ICD-10 conditions can be viewed in part on the pages of either of the datafields ([41202](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=41202) and [41204](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=41204)) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=19).
