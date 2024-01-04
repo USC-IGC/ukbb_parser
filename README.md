@@ -129,7 +129,7 @@ _Notes_
 
 #### Careers
 
-The coding tree for careers can be viewed on the datafield pages ([132](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=132) and [22617](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=22617)) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=2). Please note that the coding on the coding page is only available to logged-in users.
+The coding tree for careers can be viewed on the datafield page [22617](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=22617)) or on the [coding page](http://biobank.ctsu.ox.ac.uk/crystal/coding.cgi?id=2). Please note that the coding on the coding page is only available to logged-in users.
 
 Also note that this inventory binarization only produces one column per job code, i.e., a job code will be noted as present so long as it has been indicated in any of the visits/instances.
 

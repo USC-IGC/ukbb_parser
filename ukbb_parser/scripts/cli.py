@@ -511,6 +511,8 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
         if rcols:
             df.rename(columns=revert_names, inplace=True)
 
+        click.echo("\nProcessing Chunk %i\n" %i)
+
         ### Filter subjects by IDs
         if len(sublist) > 0:
             df = df[df.eid.isin(sublist)]
@@ -730,7 +732,7 @@ def inventory(incsv, outcsv, subjects, rcols, datatype, code, level, all_codes, 
     necessary = {
             'icd10': ['41202', '41204', '41270'],
             'self_report': ['20002'],
-            'careers': ['132', '22617']
+            'careers': ['22617'] # 132 now restricted
             }
 
     # The following shouldn't be necessary but just in case

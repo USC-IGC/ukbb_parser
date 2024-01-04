@@ -1,3 +1,9 @@
+### Release 0.8.0
+
+Updates: 
+* [January 3, 2024] Updated the category tree to account for newly available data fields and categories
+* [January 3, 2024] Removed datafield 132 as a necessary datafield from the job inventory script
+
 ### Release 0.7.0
 
 New Features: 
