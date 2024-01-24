@@ -50,9 +50,14 @@ def check(incsv, datafield, category):
 
     Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
     '''
+    if incsv.endswith(".csv"):
+        delimiter = ','
+    elif incsv.endswith(".txt") or incsv.endswith(".tsv"):
+        delimiter = '\t'
+
     with open(incsv, 'r') as f:
         first_line = f.readline()
-    columns = first_line.strip().split(",")
+    columns = first_line.strip().split(delimiter)
     datafields = set([col.split("-")[0] for col in columns])
     datafields = list(datafields)
     if datafields[0].startswith('"'):
@@ -96,9 +101,9 @@ def update(previous, new, outcsv):
     Please see https://github.com/USC-IGC/ukbb_parser for additional documentation.
     '''
     click.echo("Loading "+previous)
-    pc = read_spreadsheet(previous, 'csv')
+    pc = read_spreadsheet(previous, 'unknown')
     click.echo("Loading "+new)
-    nc = read_spreadsheet(new, 'csv')
+    nc = read_spreadsheet(new, 'unknown')
 
     keep = ['eid']
     for col in pc.columns:
@@ -189,7 +194,12 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     arglist = ' '.join(sys.argv)
     pd.set_option("display.max_colwidth", 500)
-    
+
+    if incsv.endswith(".csv"):
+        delimiter = ','
+    elif incsv.endswith(".txt") or incsv.endswith(".tsv"):
+        delimiter = '\t'
+
     ### Functions... We like functions
 
     time_between_online_cognitive_test_and_imaging = {
@@ -213,7 +223,7 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
     ### Filter data columns, Part I  ###
     ####################################
 
-    all_columns = pd.read_csv(incsv, encoding='ISO-8859-1', nrows=2)
+    all_columns = pd.read_csv(incsv, encoding='ISO-8859-1', nrows=2, delimiter=delimiter)
     all_columns = list(all_columns.columns)
     defcols = ["eid"]
     covariate_columns = ['eid']
@@ -506,7 +516,8 @@ def parse(incsv, out, incon, excon, insr, exsr, incat, excat, inhdr, exhdr, subj
 
     # df.dropna(axis=1, how="all", inplace=True)
 
-    for i, df in enumerate(pd.read_csv(incsv, encoding='ISO-8859-1', chunksize=chunksize, usecols=defcols)):
+    for i, df in enumerate(pd.read_csv(incsv, encoding='ISO-8859-1', chunksize=chunksize, usecols=defcols,
+        delimiter=delimiter)):
 
         if rcols:
             df.rename(columns=revert_names, inplace=True)
@@ -712,8 +723,13 @@ def inventory(incsv, outcsv, subjects, rcols, datatype, code, level, all_codes, 
         click.echo("Number of --level and --code flags used should match. Please double check your inputs before trying again.")
         sys.exit(1)
 
+    if incsv.endswith(".csv"):
+        delimiter = ','
+    elif incsv.endswith(".txt") or incsv.endswith(".tsv"):
+        delimiter = '\t'
+
     # Load Datafields from Column Headers
-    all_columns = pd.read_csv(incsv, encoding='ISO-8859-1', nrows=2)
+    all_columns = pd.read_csv(incsv, encoding='ISO-8859-1', nrows=2, delimiter=delimiter)
     all_columns = list(all_columns.columns)
 
     # R columns
@@ -783,7 +799,8 @@ def inventory(incsv, outcsv, subjects, rcols, datatype, code, level, all_codes, 
     # df = read_spreadsheet(incsv)
     reldfs = list(defcols)
     reldfs.remove('eid')
-    for i, df in enumerate(pd.read_csv(incsv, encoding='ISO-8859-1', chunksize=chunksize, usecols=defcols)):
+    for i, df in enumerate(pd.read_csv(incsv, encoding='ISO-8859-1', chunksize=chunksize, usecols=defcols,
+        delimiter=delimiter)):
 
         # Filter Subjects
         if len(sublist) > 0:
